@@ -6,7 +6,7 @@ import serial
 import sys
 import time
 import cv2 as cv2
-
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,17 +14,22 @@ mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 fig = plt.figure()
 
-# # port = "/dev/ttyACM0"
-# port = "COM4"
-# arduino = serial.Serial(
-#     port, 9600, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE
-# )  # initialise serial object
+communication = False  # Press 'c' to toggle communication with arduino
+showGraph = True
+
+if communication:
+    # port = "/dev/ttyACM0"
+    port = "COM4"
+    arduino = serial.Serial(
+        port, 9600, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE
+    )  # initialise serial object
 
 joint_array = [
     [11, 13, 15],  # Left arm bicep joint
     [12, 14, 16],  # Right arm bicep joint
 ]
-joint_angles = np.zeros((2, len(joint_array)))  # Initialise joint angles array (2x10)
+# Initialise joint angles array (2x10)
+joint_angles = np.zeros((2, len(joint_array)))
 
 
 class Display(Enum):
@@ -36,7 +41,6 @@ class Display(Enum):
 currentDisplay = (
     Display.ViewAll
 )  # Press 't' to toggle which angle values to draw on camera image
-communication = False  # Press 'c' to toggle communication with arduino
 
 
 def calc_angle(u, v):
@@ -52,8 +56,14 @@ def lin2interp(a, b, ratio):
     return int((b - a) * ratio + a)
 
 
+def normalise(vector):
+    magnitude = (vector[0] ** 2 + vector[1] ** 2 + vector[2] ** 2) ** 0.5
+    return np.array(
+        [vector[0] / magnitude, vector[1] / magnitude, vector[2] / magnitude]
+    )
+
+
 def calculateAngle(landmarks, landmark1, landmark2, landmark3):
-    # [[0, 0, 0], [0, 0, 1], [0, 1, 1]]
     pos1 = np.array(
         [landmarks[landmark1].x, landmarks[landmark1].y, landmarks[landmark1].z]
     )
@@ -63,21 +73,25 @@ def calculateAngle(landmarks, landmark1, landmark2, landmark3):
     pos3 = np.array(
         [landmarks[landmark3].x, landmarks[landmark3].y, landmarks[landmark3].z]
     )
-    print(f"Pos1: {pos1}")
-    print(f"Pos2: {pos2}")
-    print(f"Pos2: {pos3}")
-    # pos1 = np.array(landmarks[0])
-    # pos2 = np.array(landmarks[1])
-    # pos3 = np.array(landmarks[2])
     OneToTwo = pos2 - pos1
     TwoToThree = pos3 - pos2
-    print(f"Vector 1 to 2: {OneToTwo}")
-    print(f"Vector 2 to 3: {TwoToThree}")
     return np.rad2deg(calc_angle(TwoToThree, OneToTwo))
 
 
-fig = plt.figure()
-ax = plt.axes(projection="3d")
+def projectToPlane(normal, vector):
+    # I think I can do the vector minus the bit of the vector in the direction of the normal
+    return vector - (normalise(normal) * np.dot(normalise(normal), vector))
+
+def send2arduino(servo_output):
+    """Function that converts the servo outputs to a bytearray, which is sent to the arduino"""
+    servo_data = bytearray(np.uint8(servo_output.ravel()))
+    servo_data.append(255)
+    # print(servo_data)
+    arduino.write(servo_data)
+
+if showGraph:
+    fig = plt.figure()
+    ax = plt.axes(projection="3d")
 
 # # For webcam input:
 cap = cv2.VideoCapture(0)
@@ -97,86 +111,78 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         image.flags.writeable = False
         results = pose.process(image)
         landmarks = results.pose_world_landmarks.landmark
-        xData = []
-        yData = []
-        zData = []
+        pictureLandmarks = results.pose_landmarks.landmark
+        if showGraph:
+            xData = []
+            yData = []
+            zData = []
 
-        for landmark in landmarks:
-            xData.append(landmark.x)
-            yData.append(landmark.y)
-            zData.append(landmark.z)
-        ax.cla()
-        ax.scatter3D(
-            xData,
-            zData,
-            yData,
-        )
-        ax.set_xlim(-1, 1)
-        ax.set_ylim(-2, 2)
-        ax.set_zlim(-1, 1)
-        ax.set_xlabel("x")
-        ax.set_zlabel("y")
-        ax.set_ylabel("z")
-        plt.pause(0.05)
-        print(mp_pose.PoseLandmark.LEFT_SHOULDER.value)
-        print("Left Positions")
+            for landmark in landmarks:
+                xData.append(landmark.x)
+                yData.append(landmark.y)
+                zData.append(landmark.z)
+            ax.cla()
+            ax.scatter3D(
+                xData,
+                zData,
+                yData,
+            )
+            ax.set_xlim(-1, 1)
+            ax.set_ylim(-2, 2)
+            ax.set_zlim(-1, 1)
+            ax.set_xlabel("x")
+            ax.set_zlabel("y")
+            ax.set_ylabel("z")
+            plt.pause(0.02)
         leftElbowAngle = calculateAngle(landmarks, 11, 13, 15)
-        cv2.putText(
-            image,
-            str(leftElbowAngle),
-            tuple(
-                np.multiply(
-                    np.array([landmarks[13].x, landmarks[13].y]), [640, 480]
-                ).astype(int)
-            ),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            2,
-            cv2.LINE_AA,
-        )
-        print("Right Positions")
         rightElbowAngle = calculateAngle(landmarks, 12, 14, 16)
-        cv2.putText(
-            image,
-            str(rightElbowAngle),
-            tuple(
-                np.multiply(
-                    np.array([landmarks[14].x, landmarks[14].y]), [640, 480]
-                ).astype(int)
-            ),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            2,
-            cv2.LINE_AA,
-        )
-        print(f"L: {leftElbowAngle} R: {rightElbowAngle}")
+        #  print(f"L: {leftElbowAngle} R: {rightElbowAngle}")
         # Calculate the plane of the body
-        pos1 = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
-        pos2 = np.array([landmarks[11].x, landmarks[11].y, landmarks[11].z])
-        pos3 = np.array([landmarks[23].x, landmarks[23].y, landmarks[23].z])
+        rightShoulder = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
+        leftShoulder = np.array([landmarks[11].x, landmarks[11].y, landmarks[11].z])
+        leftHip = np.array([landmarks[23].x, landmarks[23].y, landmarks[23].z])
 
-        normal = np.cross((pos1 - pos2), (pos3 - pos2))
+        bodyNormal = np.cross((rightShoulder - leftShoulder), (leftHip - leftShoulder))
 
+        topLeftArmVector = np.array(
+            [landmarks[13].x, landmarks[13].y, landmarks[13].z]) - leftShoulder
         topRightArmVector = (
-            np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]) - pos1
+            np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]) - rightShoulder
         )
-        angleAtRightArm = calc_angle(normal, topRightArmVector)
-        cv2.putText(
-            image,
-            str(angleAtRightArm),
-            tuple(
-                np.multiply(
-                    np.array([landmarks[12].x, landmarks[12].y]), [640, 480]
-                ).astype(int)
-            ),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            2,
-            cv2.LINE_AA,
+
+        leftBodySideVector = leftShoulder - leftHip
+        rightBodySideVector = rightShoulder - np.array(
+            [landmarks[24].x, landmarks[24].y, landmarks[24].z]
         )
+        angleAtLeftArm = calc_angle(bodyNormal, topLeftArmVector)
+        angleAtRightArm = calc_angle(bodyNormal, topRightArmVector)
+
+        leftArmVectorProjectedToPlane = projectToPlane(bodyNormal, topLeftArmVector)
+        angleLeftArmOmoPlate = calc_angle(leftArmVectorProjectedToPlane, leftBodySideVector)
+
+        rightArmVectorProjectedToPlane = projectToPlane(
+            bodyNormal, topRightArmVector)
+        angleRightArmOmoPlate = calc_angle(
+            rightArmVectorProjectedToPlane, rightBodySideVector
+        )
+
+        topLeftArmAndBodyNormal = np.cross(topLeftArmVector, leftBodySideVector)
+        leftArmRotationAngle = calc_angle(normalise(topLeftArmAndBodyNormal), np.array([
+            landmarks[15].x, landmarks[15].y, landmarks[15].z]) - np.array(
+            [landmarks[13].x, landmarks[13].y, landmarks[13].z])
+        )
+
+        topRightArmAndBodyNormal = np.cross(
+            topRightArmVector, rightBodySideVector)
+        rightArmRotationAngle = calc_angle(
+            normalise(topRightArmAndBodyNormal),
+            np.array([landmarks[16].x, landmarks[16].y, landmarks[16].z])
+            - np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]),
+        )
+        #It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
+        outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle, angleAtLeftArm, angleLeftArmOmoPlate, leftArmRotationAngle,
+                                rightElbowAngle, angleAtRightArm, angleRightArmOmoPlate, rightArmRotationAngle]))))
+        print(outputArray)
         # Draw the pose annotation on the image.
         image.flags.writeable = True
 
@@ -184,6 +190,8 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         mp_drawing.draw_landmarks(
             image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
         )
+        if communication:
+            send2arduino(outputArray)
         cv2.imshow("MediaPipe Pose", image)
         if cv2.waitKey(5) & 0xFF == 27:
             break
