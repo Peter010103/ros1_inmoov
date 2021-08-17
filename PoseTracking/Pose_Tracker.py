@@ -75,7 +75,7 @@ def calculateAngle(landmarks, landmark1, landmark2, landmark3):
     )
     OneToTwo = pos2 - pos1
     TwoToThree = pos3 - pos2
-    return np.rad2deg(calc_angle(TwoToThree, OneToTwo))
+    return calc_angle(TwoToThree, OneToTwo)
 
 
 def projectToPlane(normal, vector):
@@ -102,98 +102,101 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             print("Ignoring empty camera frame.")
             # If loading a video, use 'break' instead of 'continue'.
             continue
+        try:
+            # Flip the image horizontally for a later selfie-view display, and convert
+            # the BGR image to RGB.
+            image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+            # To improve performance, optionally mark the image as not writeable to
+            # pass by reference.
+            image.flags.writeable = False
+            results = pose.process(image)
+            landmarks = results.pose_world_landmarks.landmark
+            pictureLandmarks = results.pose_landmarks.landmark
+            if showGraph:
+                xData = []
+                yData = []
+                zData = []
 
-        # Flip the image horizontally for a later selfie-view display, and convert
-        # the BGR image to RGB.
-        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
-        # To improve performance, optionally mark the image as not writeable to
-        # pass by reference.
-        image.flags.writeable = False
-        results = pose.process(image)
-        landmarks = results.pose_world_landmarks.landmark
-        pictureLandmarks = results.pose_landmarks.landmark
-        if showGraph:
-            xData = []
-            yData = []
-            zData = []
+                for landmark in landmarks:
+                    xData.append(landmark.x)
+                    yData.append(landmark.y)
+                    zData.append(landmark.z)
+                ax.cla()
+                ax.scatter3D(
+                    xData,
+                    zData,
+                    yData,
+                )
+                ax.set_xlim(-1, 1)
+                ax.set_ylim(-2, 2)
+                ax.set_zlim(-1, 1)
+                ax.set_xlabel("x")
+                ax.set_zlabel("y")
+                ax.set_ylabel("z")
+                plt.pause(0.02)
+            leftElbowAngle = calculateAngle(landmarks, 11, 13, 15)
+            rightElbowAngle = calculateAngle(landmarks, 12, 14, 16)
+            #  print(f"L: {leftElbowAngle} R: {rightElbowAngle}")
+            # Calculate the plane of the body
+            rightShoulder = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
+            leftShoulder = np.array([landmarks[11].x, landmarks[11].y, landmarks[11].z])
+            leftHip = np.array([landmarks[23].x, landmarks[23].y, landmarks[23].z])
 
-            for landmark in landmarks:
-                xData.append(landmark.x)
-                yData.append(landmark.y)
-                zData.append(landmark.z)
-            ax.cla()
-            ax.scatter3D(
-                xData,
-                zData,
-                yData,
+            bodyNormal = np.cross((rightShoulder - leftShoulder), (leftHip - leftShoulder))
+
+            topLeftArmVector = np.array(
+                [landmarks[13].x, landmarks[13].y, landmarks[13].z]) - leftShoulder
+            topRightArmVector = (
+                np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]) - rightShoulder
             )
-            ax.set_xlim(-1, 1)
-            ax.set_ylim(-2, 2)
-            ax.set_zlim(-1, 1)
-            ax.set_xlabel("x")
-            ax.set_zlabel("y")
-            ax.set_ylabel("z")
-            plt.pause(0.02)
-        leftElbowAngle = calculateAngle(landmarks, 11, 13, 15)
-        rightElbowAngle = calculateAngle(landmarks, 12, 14, 16)
-        #  print(f"L: {leftElbowAngle} R: {rightElbowAngle}")
-        # Calculate the plane of the body
-        rightShoulder = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
-        leftShoulder = np.array([landmarks[11].x, landmarks[11].y, landmarks[11].z])
-        leftHip = np.array([landmarks[23].x, landmarks[23].y, landmarks[23].z])
 
-        bodyNormal = np.cross((rightShoulder - leftShoulder), (leftHip - leftShoulder))
+            leftBodySideVector = leftShoulder - leftHip
+            rightBodySideVector = rightShoulder - np.array(
+                [landmarks[24].x, landmarks[24].y, landmarks[24].z]
+            )
+            angleAtLeftArm = calc_angle(bodyNormal, topLeftArmVector)
+            angleAtRightArm = calc_angle(bodyNormal, topRightArmVector)
 
-        topLeftArmVector = np.array(
-            [landmarks[13].x, landmarks[13].y, landmarks[13].z]) - leftShoulder
-        topRightArmVector = (
-            np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]) - rightShoulder
-        )
+            leftArmVectorProjectedToPlane = projectToPlane(bodyNormal, topLeftArmVector)
+            angleLeftArmOmoPlate = calc_angle(leftArmVectorProjectedToPlane, leftBodySideVector)
 
-        leftBodySideVector = leftShoulder - leftHip
-        rightBodySideVector = rightShoulder - np.array(
-            [landmarks[24].x, landmarks[24].y, landmarks[24].z]
-        )
-        angleAtLeftArm = calc_angle(bodyNormal, topLeftArmVector)
-        angleAtRightArm = calc_angle(bodyNormal, topRightArmVector)
+            rightArmVectorProjectedToPlane = projectToPlane(
+                bodyNormal, topRightArmVector)
+            angleRightArmOmoPlate = calc_angle(
+                rightArmVectorProjectedToPlane, rightBodySideVector
+            )
 
-        leftArmVectorProjectedToPlane = projectToPlane(bodyNormal, topLeftArmVector)
-        angleLeftArmOmoPlate = calc_angle(leftArmVectorProjectedToPlane, leftBodySideVector)
+            topLeftArmAndBodyNormal = np.cross(topLeftArmVector, leftBodySideVector)
+            leftArmRotationAngle = calc_angle(normalise(topLeftArmAndBodyNormal), np.array([
+                landmarks[15].x, landmarks[15].y, landmarks[15].z]) - np.array(
+                [landmarks[13].x, landmarks[13].y, landmarks[13].z])
+            )
 
-        rightArmVectorProjectedToPlane = projectToPlane(
-            bodyNormal, topRightArmVector)
-        angleRightArmOmoPlate = calc_angle(
-            rightArmVectorProjectedToPlane, rightBodySideVector
-        )
+            topRightArmAndBodyNormal = np.cross(
+                topRightArmVector, rightBodySideVector)
+            rightArmRotationAngle = calc_angle(
+                normalise(topRightArmAndBodyNormal),
+                np.array([landmarks[16].x, landmarks[16].y, landmarks[16].z])
+                - np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]),
+            )
+            #It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
+            outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle, angleAtLeftArm, angleLeftArmOmoPlate, leftArmRotationAngle,
+                                    rightElbowAngle, angleAtRightArm, angleRightArmOmoPlate, rightArmRotationAngle]))))
+            print(outputArray)
+            # Draw the pose annotation on the image.
+            image.flags.writeable = True
 
-        topLeftArmAndBodyNormal = np.cross(topLeftArmVector, leftBodySideVector)
-        leftArmRotationAngle = calc_angle(normalise(topLeftArmAndBodyNormal), np.array([
-            landmarks[15].x, landmarks[15].y, landmarks[15].z]) - np.array(
-            [landmarks[13].x, landmarks[13].y, landmarks[13].z])
-        )
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            mp_drawing.draw_landmarks(
+                image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
+            )
+            if communication:
+                send2arduino(outputArray)
+            cv2.imshow("MediaPipe Pose", image)
+            if cv2.waitKey(5) & 0xFF == 27:
+                break
+        except:
+            continue
 
-        topRightArmAndBodyNormal = np.cross(
-            topRightArmVector, rightBodySideVector)
-        rightArmRotationAngle = calc_angle(
-            normalise(topRightArmAndBodyNormal),
-            np.array([landmarks[16].x, landmarks[16].y, landmarks[16].z])
-            - np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]),
-        )
-        #It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
-        outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle, angleAtLeftArm, angleLeftArmOmoPlate, leftArmRotationAngle,
-                                rightElbowAngle, angleAtRightArm, angleRightArmOmoPlate, rightArmRotationAngle]))))
-        print(outputArray)
-        # Draw the pose annotation on the image.
-        image.flags.writeable = True
-
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        mp_drawing.draw_landmarks(
-            image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
-        )
-        if communication:
-            send2arduino(outputArray)
-        cv2.imshow("MediaPipe Pose", image)
-        if cv2.waitKey(5) & 0xFF == 27:
-            break
 cap.release()
 plt.show()
