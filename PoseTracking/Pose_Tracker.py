@@ -3,8 +3,6 @@ import mediapipe as mp
 import numpy as np
 from enum import Enum
 import serial
-import sys
-import time
 import cv2 as cv2
 import math
 import numpy as np
@@ -23,14 +21,6 @@ if communication:
     arduino = serial.Serial(
         port, 9600, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE
     )  # initialise serial object
-
-joint_array = [
-    [11, 13, 15],  # Left arm bicep joint
-    [12, 14, 16],  # Right arm bicep joint
-]
-# Initialise joint angles array (2x10)
-joint_angles = np.zeros((2, len(joint_array)))
-
 
 class Display(Enum):
     ClearAll = 0
@@ -134,26 +124,28 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 ax.set_zlabel("y")
                 ax.set_ylabel("z")
                 plt.pause(0.02)
-            leftElbowAngle = calculateAngle(landmarks, 11, 13, 15)
-            rightElbowAngle = calculateAngle(landmarks, 12, 14, 16)
-            #  print(f"L: {leftElbowAngle} R: {rightElbowAngle}")
-            # Calculate the plane of the body
-            rightShoulder = np.array([landmarks[12].x, landmarks[12].y, landmarks[12].z])
-            leftShoulder = np.array([landmarks[11].x, landmarks[11].y, landmarks[11].z])
-            leftHip = np.array([landmarks[23].x, landmarks[23].y, landmarks[23].z])
 
+            leftElbowPosition = np.array([landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].y, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].z])
+            rightElbowPosition = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].y, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].z])
+            leftWristPosition =  np.array([landmarks[mp_pose.PoseLandmark.LEFT_WRIST].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST].y, landmarks[mp_pose.PoseLandmark.LEFT_WRIST].z])
+            rightWristPosition = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].y, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].z])
+            leftShoulder = np.array([landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].z])
+            rightShoulder = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].z])
+            leftHip = np.array([landmarks[mp_pose.PoseLandmark.LEFT_HIP].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP].y, landmarks[mp_pose.PoseLandmark.LEFT_HIP].z])
+            rightHip = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP].y, landmarks[mp_pose.PoseLandmark.RIGHT_HIP].z])
+
+
+            topLeftArmVector = leftElbowPosition - leftShoulder
+            topRightArmVector = rightElbowPosition - rightShoulder
+
+            leftElbowAngle = calc_angle(topLeftArmVector, leftWristPosition - leftElbowPosition)
+            rightElbowAngle = calc_angle(topRightArmVector, leftWristPosition - leftElbowPosition)
+            # Calculate the plane of the body
             bodyNormal = np.cross((rightShoulder - leftShoulder), (leftHip - leftShoulder))
 
-            topLeftArmVector = np.array(
-                [landmarks[13].x, landmarks[13].y, landmarks[13].z]) - leftShoulder
-            topRightArmVector = (
-                np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]) - rightShoulder
-            )
 
             leftBodySideVector = leftShoulder - leftHip
-            rightBodySideVector = rightShoulder - np.array(
-                [landmarks[24].x, landmarks[24].y, landmarks[24].z]
-            )
+            rightBodySideVector = rightShoulder - rightHip
             angleAtLeftArm = calc_angle(bodyNormal, topLeftArmVector)
             angleAtRightArm = calc_angle(bodyNormal, topRightArmVector)
 
@@ -167,18 +159,10 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             )
 
             topLeftArmAndBodyNormal = np.cross(topLeftArmVector, leftBodySideVector)
-            leftArmRotationAngle = calc_angle(normalise(topLeftArmAndBodyNormal), np.array([
-                landmarks[15].x, landmarks[15].y, landmarks[15].z]) - np.array(
-                [landmarks[13].x, landmarks[13].y, landmarks[13].z])
-            )
+            leftArmRotationAngle = calc_angle(normalise(topLeftArmAndBodyNormal), leftWristPosition - leftElbowPosition)
 
-            topRightArmAndBodyNormal = np.cross(
-                topRightArmVector, rightBodySideVector)
-            rightArmRotationAngle = calc_angle(
-                normalise(topRightArmAndBodyNormal),
-                np.array([landmarks[16].x, landmarks[16].y, landmarks[16].z])
-                - np.array([landmarks[14].x, landmarks[14].y, landmarks[14].z]),
-            )
+            topRightArmAndBodyNormal = np.cross(topRightArmVector, rightBodySideVector)
+            rightArmRotationAngle = calc_angle(normalise(topRightArmAndBodyNormal),rightWristPosition - rightElbowPosition)
             #It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
             outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle, angleAtLeftArm, angleLeftArmOmoPlate, leftArmRotationAngle,
                                     rightElbowAngle, angleAtRightArm, angleRightArmOmoPlate, rightArmRotationAngle]))))
