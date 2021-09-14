@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Float64
+from std_msgs.msg import Int16
 from mpl_toolkits import mplot3d
 import mediapipe as mp
 import numpy as np
@@ -18,15 +18,15 @@ showGraph = True
 
 rospy.init_node('pose_tracker', anonymous=True)
 
-left_elbow_publisher = rospy.Publisher('left_elbow', Float64, queue_size=10)
-left_shoulder_publisher = rospy.Publisher('left_shoulder', Float64, queue_size=10)
-left_omoplate_publisher = rospy.Publisher('left_omoplate', Float64, queue_size=10)
-left_rotation_publisher = rospy.Publisher('left_rotation', Float64, queue_size=10)
+left_elbow_publisher = rospy.Publisher('left_elbow', Int16, queue_size=10)
+left_shoulder_publisher = rospy.Publisher('left_shoulder', Int16, queue_size=10)
+left_omoplate_publisher = rospy.Publisher('left_omoplate', Int16, queue_size=10)
+left_rotation_publisher = rospy.Publisher('left_rotation', Int16, queue_size=10)
 
-right_elbow_publisher = rospy.Publisher('right_elbow', Float64, queue_size=10)
-right_shoulder_publisher = rospy.Publisher('right_shoulder', Float64, queue_size=10)
-right_omoplate_publisher = rospy.Publisher('right_omoplate', Float64, queue_size=10)
-right_rotation_publisher = rospy.Publisher('right_rotation', Float64, queue_size=10)
+right_elbow_publisher = rospy.Publisher('right_elbow', Int16, queue_size=10)
+right_shoulder_publisher = rospy.Publisher('right_shoulder', Int16, queue_size=10)
+right_omoplate_publisher = rospy.Publisher('right_omoplate', Int16, queue_size=10)
+right_rotation_publisher = rospy.Publisher('right_rotation', Int16, queue_size=10)
 
 rate = rospy.Rate(10) #This keeps it running at 10Hz, this will probably want changing
 
