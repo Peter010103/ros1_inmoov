@@ -1,8 +1,10 @@
+#!/usr/bin/env python
+import rospy
+from std_msgs.msg import Float64
 from mpl_toolkits import mplot3d
 import mediapipe as mp
 import numpy as np
 from enum import Enum
-import serial
 import cv2 as cv2
 import math
 import numpy as np
@@ -12,15 +14,21 @@ mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 fig = plt.figure()
 
-communication = False  # Press 'c' to toggle communication with arduino
 showGraph = True
 
-if communication:
-    # port = "/dev/ttyACM0"
-    port = "COM4"
-    arduino = serial.Serial(
-        port, 9600, serial.EIGHTBITS, serial.PARITY_NONE, serial.STOPBITS_ONE
-    )  # initialise serial object
+rospy.init_node('pose_tracker', anonymous=True)
+
+left_elbow_publisher = rospy.Publisher('left_elbow', Float64, queue_size=10)
+left_shoulder_publisher = rospy.Publisher('left_shoulder', Float64, queue_size=10)
+left_omoplate_publisher = rospy.Publisher('left_omoplate', Float64, queue_size=10)
+left_rotation_publisher = rospy.Publisher('left_rotation', Float64, queue_size=10)
+
+right_elbow_publisher = rospy.Publisher('right_elbow', Float64, queue_size=10)
+right_shoulder_publisher = rospy.Publisher('right_shoulder', Float64, queue_size=10)
+right_omoplate_publisher = rospy.Publisher('right_omoplate', Float64, queue_size=10)
+right_rotation_publisher = rospy.Publisher('right_rotation', Float64, queue_size=10)
+
+rate = rospy.Rate(10) #This keeps it running at 10Hz, this will probably want changing
 
 class Display(Enum):
     ClearAll = 0
@@ -71,13 +79,6 @@ def calculateAngle(landmarks, landmark1, landmark2, landmark3):
 def projectToPlane(normal, vector):
     # I think I can do the vector minus the bit of the vector in the direction of the normal
     return vector - (normalise(normal) * np.dot(normalise(normal), vector))
-
-def send2arduino(servo_output):
-    """Function that converts the servo outputs to a bytearray, which is sent to the arduino"""
-    servo_data = bytearray(np.uint8(servo_output.ravel()))
-    servo_data.append(255)
-    # print(servo_data)
-    arduino.write(servo_data)
 
 if showGraph:
     fig = plt.figure()
@@ -134,7 +135,6 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             leftHip = np.array([landmarks[mp_pose.PoseLandmark.LEFT_HIP].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP].y, landmarks[mp_pose.PoseLandmark.LEFT_HIP].z])
             rightHip = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP].y, landmarks[mp_pose.PoseLandmark.RIGHT_HIP].z])
 
-
             topLeftArmVector = leftElbowPosition - leftShoulder
             topRightArmVector = rightElbowPosition - rightShoulder
 
@@ -142,7 +142,6 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             rightElbowAngle = calc_angle(topRightArmVector, leftWristPosition - leftElbowPosition)
             # Calculate the plane of the body
             bodyNormal = np.cross((rightShoulder - leftShoulder), (leftHip - leftShoulder))
-
 
             leftBodySideVector = leftShoulder - leftHip
             rightBodySideVector = rightShoulder - rightHip
@@ -166,7 +165,15 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             #It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
             outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle, angleAtLeftArm, angleLeftArmOmoPlate, leftArmRotationAngle,
                                     rightElbowAngle, angleAtRightArm, angleRightArmOmoPlate, rightArmRotationAngle]))))
-            print(outputArray)
+            rospy.loginfo(outputArray)
+            left_elbow_publisher.publish(outputArray[0])
+            left_shoulder_publisher.publish(outputArray[1])
+            left_omoplate_publisher.publish(outputArray[2])
+            left_rotation_publisher.publish(outputArray[3])
+            right_elbow_publisher.publish(outputArray[4])
+            right_shoulder_publisher.publish(outputArray[5])
+            right_omoplate_publisher.publish(outputArray[6])
+            right_rotation_publisher.publish(outputArray[7])
             # Draw the pose annotation on the image.
             image.flags.writeable = True
 
@@ -174,13 +181,12 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             mp_drawing.draw_landmarks(
                 image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
             )
-            if communication:
-                send2arduino(outputArray)
             cv2.imshow("MediaPipe Pose", image)
             if cv2.waitKey(5) & 0xFF == 27:
                 break
         except:
             continue
+        rate.sleep()
 
 cap.release()
 plt.show()
