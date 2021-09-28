@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Int16
+from std_msgs.msg import Int16MultiArray
 from mpl_toolkits import mplot3d
 import mediapipe as mp
 import numpy as np
@@ -16,17 +16,10 @@ fig = plt.figure()
 
 showGraph = True
 
-rospy.init_node('pose_tracker', anonymous=True)
+rospy.init_node('/shadow_arm_controller', anonymous=True)
 
-left_elbow_publisher = rospy.Publisher('left_elbow', Int16, queue_size=10)
-left_shoulder_publisher = rospy.Publisher('left_shoulder', Int16, queue_size=10)
-left_omoplate_publisher = rospy.Publisher('left_omoplate', Int16, queue_size=10)
-left_rotation_publisher = rospy.Publisher('left_rotation', Int16, queue_size=10)
-
-right_elbow_publisher = rospy.Publisher('right_elbow', Int16, queue_size=10)
-right_shoulder_publisher = rospy.Publisher('right_shoulder', Int16, queue_size=10)
-right_omoplate_publisher = rospy.Publisher('right_omoplate', Int16, queue_size=10)
-right_rotation_publisher = rospy.Publisher('right_rotation', Int16, queue_size=10)
+left_arm_publisher = rospy.Publisher('/joints/arm/left', Int16MultiArray, queue_size=10 )
+right_arm_publisher = rospy.Publisher('/joints/arm/right', Int16MultiArray, queue_size=10 )
 
 rate = rospy.Rate(10) #This keeps it running at 10Hz, this will probably want changing
 
@@ -163,17 +156,11 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             topRightArmAndBodyNormal = np.cross(topRightArmVector, rightBodySideVector)
             rightArmRotationAngle = calc_angle(normalise(topRightArmAndBodyNormal),rightWristPosition - rightElbowPosition)
             #It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
-            outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle, angleAtLeftArm, angleLeftArmOmoPlate, leftArmRotationAngle,
-                                    rightElbowAngle, angleAtRightArm, angleRightArmOmoPlate, rightArmRotationAngle]))))
+            outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle,leftArmRotationAngle, angleAtLeftArm, angleLeftArmOmoPlate,
+                                    rightElbowAngle,rightArmRotationAngle, angleAtRightArm, angleRightArmOmoPlate]))))
             rospy.loginfo(outputArray)
-            left_elbow_publisher.publish(outputArray[0])
-            left_shoulder_publisher.publish(outputArray[1])
-            left_omoplate_publisher.publish(outputArray[2])
-            left_rotation_publisher.publish(outputArray[3])
-            right_elbow_publisher.publish(outputArray[4])
-            right_shoulder_publisher.publish(outputArray[5])
-            right_omoplate_publisher.publish(outputArray[6])
-            right_rotation_publisher.publish(outputArray[7])
+            left_arm_publisher.publish(outputArray[0:4])
+            right_arm_publisher.publish(outputArray[4:])
             # Draw the pose annotation on the image.
             image.flags.writeable = True
 
