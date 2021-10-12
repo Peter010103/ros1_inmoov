@@ -1,7 +1,6 @@
 Debug = True
 
 import yaml
-import msvcrt as m
 if not Debug:
     from adafruit_servokit import ServoKit
     kit = ServoKit(channels=48)
