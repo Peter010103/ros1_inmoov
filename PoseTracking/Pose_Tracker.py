@@ -19,13 +19,10 @@ bridge = CvBridge()
 
 showGraph = True
 
-rospy.init_node('/shadow_arm_controller', anonymous=True)
-
 left_arm_publisher = rospy.Publisher('/joints/arm/left', Int16MultiArray, queue_size=10 )
 right_arm_publisher = rospy.Publisher('/joints/arm/right', Int16MultiArray, queue_size=10 )
 
 rate = rospy.Rate(10) #This keeps it running at 10Hz, this will probably want changing
-image_sub = rospy.Subscriber('/camera/image_raw', Image, )
 
 if showGraph:
     fig = plt.figure()
@@ -160,3 +157,16 @@ def frameCallback(data):
             image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
         )
         cv2.imshow("MediaPipe Pose", image)
+
+
+def listener():
+    rospy.init_node('/shadow_arm_controller', anonymous=True)
+    image_sub = rospy.Subscriber('/camera/image_raw', Image, frameCallback)
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print("shutting down")
+    cv.destroyAllWindows()   
+
+if __name__ == "__main__":
+    listener()
