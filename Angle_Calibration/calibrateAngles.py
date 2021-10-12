@@ -31,34 +31,47 @@ for joint in joints:
     print(f"{joint}")
     print("Setting Closed Position")
     dataEntered = ''
+    
     while dataEntered != 'O' and not skipJoint:
         moveToAngle(joint, currentAngle)
         dataEntered = input("Enter angle: ")
+        
         if dataEntered.isnumeric():
             currentAngle = int(dataEntered)
+            break
+
         elif dataEntered == '':
             skipJoint = True
+    
     if not skipJoint:
         closedAngle = currentAngle
         print(f"Closed angle set to {closedAngle}")
         dataEntered = ''
         print("Setting Rest Position")
         dataEntered = ''
+        
         while dataEntered != 'O':
             moveToAngle(joint, currentAngle)
             dataEntered = input("Enter angle: ")
+            
             if dataEntered.isnumeric():
                 currentAngle = int(dataEntered)
+                break
+
         restAngle = currentAngle
         print(f"Rest angle set to {restAngle}")
         dataEntered = ''
         print("Setting Open Position")
         dataEntered = ''
+        
         while dataEntered != 'O':
             moveToAngle(joint, currentAngle)
             dataEntered = input("Enter angle: ")
+            
             if dataEntered.isnumeric():
                 currentAngle = int(dataEntered)
+                break
+
         openAngle = currentAngle
         print(f"Open angle set to {openAngle}")
         outputData[joint] = {'closed': closedAngle,
