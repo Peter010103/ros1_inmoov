@@ -1,10 +1,10 @@
-#O to accept the angle
+# A to accept the angle
+import yaml
 Debug = True
 
-import yaml
 if not Debug:
     from adafruit_servokit import ServoKit
-    kit = ServoKit(channels=48)
+    kit = ServoKit(channels=16)
 
 servoNamesToIndices = {}
 with open(r'jointNamesToServoNumber.yml') as inputFile:
@@ -27,52 +27,48 @@ for joint in servoNamesToIndices:
     print(f"{joint}")
     print("Setting Closed Position")
     dataEntered = ''
-    
-    while dataEntered != 'O' and not skipJoint:
+
+    while dataEntered != 'A' and not skipJoint:
         moveToAngle(joint, currentAngle)
-        dataEntered = input("Enter angle: ")
-        
+        dataEntered = input("Enter angle: ").upper()
+
         if dataEntered.isnumeric():
             currentAngle = int(dataEntered)
-            break
-
         elif dataEntered == '':
             skipJoint = True
-    
+
     if not skipJoint:
         closedAngle = currentAngle
         print(f"Closed angle set to {closedAngle}")
         dataEntered = ''
         print("Setting Rest Position")
         dataEntered = ''
-        
-        while dataEntered != 'O':
+
+        while dataEntered != 'A':
             moveToAngle(joint, currentAngle)
-            dataEntered = input("Enter angle: ")
-            
+            dataEntered = input("Enter angle: ").upper()
+
             if dataEntered.isnumeric():
                 currentAngle = int(dataEntered)
-                break
 
         restAngle = currentAngle
         print(f"Rest angle set to {restAngle}")
         dataEntered = ''
         print("Setting Open Position")
         dataEntered = ''
-        
-        while dataEntered != 'O':
+
+        while dataEntered != 'A':
             moveToAngle(joint, currentAngle)
-            dataEntered = input("Enter angle: ")
-            
+            dataEntered = input("Enter angle: ").upper()
+
             if dataEntered.isnumeric():
                 currentAngle = int(dataEntered)
-                break
 
         openAngle = currentAngle
         print(f"Open angle set to {openAngle}")
         outputData[joint] = {'closed': closedAngle,
-                            'rest': restAngle, 'open': openAngle}
-        moveToAngle(joint,restAngle)
+                             'rest': restAngle, 'open': openAngle}
+        moveToAngle(joint, restAngle)
 
 
 with open('calibrationPoints.yml', 'w') as outfile:
