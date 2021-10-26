@@ -1,9 +1,9 @@
-r_thumb: 0
-r_index: 1
-r_middle: 2
-r_ringFinger: 3
-r_pinky: 4
-r_wrist: 5
+r_wrist: 0
+r_thumb: 1
+r_index: 2
+r_middle: 3
+r_ringFinger: 4
+r_pinky: 5
 r_bicep: 6
 r_arm_rotate: 7
 r_shoulder: 8

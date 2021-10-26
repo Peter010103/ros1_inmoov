@@ -1,6 +1,6 @@
 # A to accept the angle
 import yaml
-Debug = True
+Debug = False
 
 if not Debug:
     from adafruit_servokit import ServoKit
@@ -21,6 +21,8 @@ def moveToAngle(joint, angle):
 
 
 for joint in servoNamesToIndices:
+    if (servoNamesToIndices[joint] >= 16):
+        continue
     currentAngle = 0
     skipJoint = False
     # First set the closed position of the joint
