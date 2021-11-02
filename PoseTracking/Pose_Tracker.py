@@ -117,9 +117,11 @@ def frameCallback(data):
 
         topLeftArmVector = leftElbowPosition - leftShoulder
         topRightArmVector = rightElbowPosition - rightShoulder
+        lowLeftArmVector = leftWristPosition - leftElbowPosition
+        lowRightArmVector = rightWristPosition - rightElbowPosition
 
-        leftElbowAngle = calc_angle(topLeftArmVector, leftWristPosition - leftElbowPosition)
-        rightElbowAngle = calc_angle(topRightArmVector, leftWristPosition - leftElbowPosition)
+        leftElbowAngle = calc_angle(topLeftArmVector, lowLeftArmVector)
+        rightElbowAngle = calc_angle(topRightArmVector, lowRightArmVector)
         # Calculate the plane of the body
         bodyNormal = np.cross((rightShoulder - leftShoulder), (leftHip - leftShoulder))
 
@@ -138,10 +140,10 @@ def frameCallback(data):
         )
 
         topLeftArmAndBodyNormal = np.cross(topLeftArmVector, leftBodySideVector)
-        leftArmRotationAngle = calc_angle(normalise(topLeftArmAndBodyNormal), leftWristPosition - leftElbowPosition)
+        leftArmRotationAngle = calc_angle(normalise(topLeftArmAndBodyNormal), lowLeftArmVector)
 
         topRightArmAndBodyNormal = np.cross(topRightArmVector, rightBodySideVector)
-        rightArmRotationAngle = calc_angle(normalise(topRightArmAndBodyNormal),rightWristPosition - rightElbowPosition)
+        rightArmRotationAngle = calc_angle(normalise(topRightArmAndBodyNormal), lowRightArmVector)
         #It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
         outputArray = np.array(list(map(math.trunc, map(math.degrees,[leftElbowAngle,leftArmRotationAngle, angleAtLeftArm, angleLeftArmOmoPlate,
                                 rightElbowAngle,rightArmRotationAngle, angleAtRightArm, angleRightArmOmoPlate]))))
