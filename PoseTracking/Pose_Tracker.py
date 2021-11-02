@@ -54,20 +54,6 @@ def normalise(vector):
         [vector[0] / magnitude, vector[1] / magnitude, vector[2] / magnitude]
     )
 
-def calculateAngle(landmarks, landmark1, landmark2, landmark3):
-    pos1 = np.array(
-        [landmarks[landmark1].x, landmarks[landmark1].y, landmarks[landmark1].z]
-    )
-    pos2 = np.array(
-        [landmarks[landmark2].x, landmarks[landmark2].y, landmarks[landmark2].z]
-    )
-    pos3 = np.array(
-        [landmarks[landmark3].x, landmarks[landmark3].y, landmarks[landmark3].z]
-    )
-    OneToTwo = pos2 - pos1
-    TwoToThree = pos3 - pos2
-    return calc_angle(TwoToThree, OneToTwo)
-
 def projectToPlane(normal, vector):
     # I think I can do the vector minus the bit of the vector in the direction of the normal
     return vector - (normalise(normal) * np.dot(normalise(normal), vector))
