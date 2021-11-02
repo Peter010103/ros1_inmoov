@@ -9,7 +9,6 @@ import numpy as np
 from enum import Enum
 import cv2 as cv2
 import math
-import numpy as np
 import matplotlib.pyplot as plt
 
 mp_drawing = mp.solutions.drawing_utils
