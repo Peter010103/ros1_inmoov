@@ -11,7 +11,9 @@ with open(r'jointNamesToServoNumber.yml') as inputFile:
     servoNamesToIndices = yaml.full_load(inputFile)
 
 outputData = {}
-
+if os.path.isfile('./calibrationPoints.yml'):
+    with open(r'calibrationPoints.yml') as previousValues:
+        outputData = yaml.full_load(previousValues)
 
 def moveToAngle(joint, angle):
     if Debug:
