@@ -120,35 +120,35 @@ def frameCallback(data):
 
         # Calculate the plane of the body, because we know it has the following normal vector
         # Plane created points forward
-        bodyNormal = np.cross(
+        frontalPlaneNormal = np.cross(
             (rightShoulder - leftShoulder), - leftBodySideVector)
 
         # Plane created points left
-        noramlToBodyNormal = np.cross(bodyNormal, - leftBodySideVector)
+        longitudinalPlaneNormal = np.cross(
+            frontalPlaneNormal, - leftBodySideVector)
 
         # This puts your arms into the same plane as the body so that it can work out how out to the side your arms are
-        # Omo plate (abduction / adduction)
-        leftArmVectorProjectedToBodyPlane = projectToPlane(
-            bodyNormal, topLeftArmVector)
+        # Omo plate (Coronal / frontal plane) (abduction / adduction)
+        leftArmVectorProjectedToFrontalPlane = projectToPlane(
+            frontalPlaneNormal, topLeftArmVector)
         angleLeftArmOmoPlate = calc_angle(
-            leftArmVectorProjectedToBodyPlane, leftBodySideVector)
+            leftArmVectorProjectedToFrontalPlane, leftBodySideVector)
 
-        rightArmVectorProjectedToBodyPlane = projectToPlane(
-            bodyNormal, topRightArmVector)
+        rightArmVectorProjectedToFrontalPlane = projectToPlane(
+            frontalPlaneNormal, topRightArmVector)
         angleRightArmOmoPlate = calc_angle(
-            rightArmVectorProjectedToBodyPlane, rightBodySideVector
-        )
+            rightArmVectorProjectedToFrontalPlane, rightBodySideVector)
 
-        # Front and Back movement (flexion / extension)
-        leftArmVectorProjectedToNormalPlane = projectToPlane(
-            noramlToBodyNormal, topLeftArmVector)
-        angleLeftArmFrontBackPlane = calc_angle(
-            leftArmVectorProjectedToNormalPlane, -leftBodySideVector)
+        # Front and Back movement (Sagittal / longitudinal plane) (flexion / extension)
+        leftArmVectorProjectedToLongitudinalPlane = projectToPlane(
+            longitudinalPlaneNormal, topLeftArmVector)
+        angleLeftArmShoulderPlane = calc_angle(
+            leftArmVectorProjectedToLongitudinalPlane, -leftBodySideVector)
 
-        rightArmVectorProjectedToNormalPlane = projectToPlane(
-            noramlToBodyNormal, topRightArmVector)
-        angleRightArmFrontBackPlane = calc_angle(
-            rightArmVectorProjectedToNormalPlane, -rightBodySideVector)
+        rightArmVectorProjectedToLongitudinalPlane = projectToPlane(
+            longitudinalPlaneNormal, topRightArmVector)
+        angleRightArmShoulderPlane = calc_angle(
+            rightArmVectorProjectedToLongitudinalPlane, -rightBodySideVector)
 
         # This attempts to calculate how rotated your arm is by taking a plane between your body
         # side and the top of your arm and looking at the angle this makes with your lower arm
@@ -161,9 +161,9 @@ def frameCallback(data):
             topRightArmVector, rightBodySideVector)
         rightArmRotationAngle = calc_angle(
             topRightArmAndBodyNormal, lowRightArmVector)
-        # It will be left, before right.  Then and it is elbow, rotation, shoulder (sagittal), omo (coronal)
-        outputArray = np.array(list(map(math.trunc, map(math.degrees, [leftElbowAngle, leftArmRotationAngle, angleLeftArmFrontBackPlane, angleLeftArmOmoPlate,
-                                                                       rightElbowAngle, rightArmRotationAngle, angleRightArmFrontBackPlane, angleRightArmOmoPlate]))))
+        # It will be left, before right.  Then and it is elbow, rotation, shoulder (sagittal/longitudinal), omo (coronal/frontal)
+        outputArray = np.array(list(map(math.trunc, map(math.degrees, [leftElbowAngle, leftArmRotationAngle, angleLeftArmShoulderPlane, angleLeftArmOmoPlate,
+                                                                       rightElbowAngle, rightArmRotationAngle, angleRightArmShoulderPlane, angleRightArmOmoPlate]))))
         # Logs the info to the terminal and publishes it to the topics so that other nodes can receive it
         rospy.loginfo(outputArray)
         left_arm_publisher.publish(outputArray[0:4])
