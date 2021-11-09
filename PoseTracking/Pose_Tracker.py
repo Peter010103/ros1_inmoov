@@ -53,16 +53,16 @@ def frameCallback(data):
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         # Flip the image horizontally for a later selfie-view display, and convert
         # the BGR image to RGB.
-        #Converts the image from a ROS image to one suitable for processing
+        # Converts the image from a ROS image to one suitable for processing
         image = bridge.imgmsg_to_cv2(data, "bgr8")
         # To improve performance, optionally mark the image as not writeable to
         # pass by reference.
         image.flags.writeable = False
         results = pose.process(image)
-        #This extracts the landmarks we are interested in
+        # This extracts the landmarks we are interested in
         landmarks = results.pose_world_landmarks.landmark
         # pictureLandmarks = results.pose_landmarks.landmark
-        #Displays the data on a 3d graph to allow manual inspection to see what is being picked up
+        # Displays the data on a 3d graph to allow manual inspection to see what is being picked up
         if showGraph:
             xData = []
             yData = []
@@ -114,45 +114,57 @@ def frameCallback(data):
         leftElbowAngle = calc_angle(topLeftArmVector, lowLeftArmVector)
         rightElbowAngle = calc_angle(topRightArmVector, lowRightArmVector)
 
-        # Calculate the plane of the body, because we know it has the following normal vector
-        bodyNormal = np.cross(
-            (rightShoulder - leftShoulder), (leftHip - leftShoulder))
-
-        # Calculate the angle at your shoulder
-        angleAtLeftArm = calc_angle(bodyNormal, topLeftArmVector)
-        angleAtRightArm = calc_angle(bodyNormal, topRightArmVector)
-
         # Calculate the vectors which are going down your body
         leftBodySideVector = leftShoulder - leftHip
         rightBodySideVector = rightShoulder - rightHip
 
+        # Calculate the plane of the body, because we know it has the following normal vector
+        # Plane created points forward
+        bodyNormal = np.cross(
+            (rightShoulder - leftShoulder), - leftBodySideVector)
+
+        # Plane created points left
+        noramlToBodyNormal = np.cross(bodyNormal, - leftBodySideVector)
+
         # This puts your arms into the same plane as the body so that it can work out how out to the side your arms are
-        leftArmVectorProjectedToPlane = projectToPlane(
+        # Omo plate (abduction / adduction)
+        leftArmVectorProjectedToBodyPlane = projectToPlane(
             bodyNormal, topLeftArmVector)
         angleLeftArmOmoPlate = calc_angle(
-            leftArmVectorProjectedToPlane, leftBodySideVector)
+            leftArmVectorProjectedToBodyPlane, leftBodySideVector)
 
-        rightArmVectorProjectedToPlane = projectToPlane(
+        rightArmVectorProjectedToBodyPlane = projectToPlane(
             bodyNormal, topRightArmVector)
         angleRightArmOmoPlate = calc_angle(
-            rightArmVectorProjectedToPlane, rightBodySideVector
+            rightArmVectorProjectedToBodyPlane, rightBodySideVector
         )
 
-        #This attempts to calculate how rotated your arm is by taking a plane between your body 
-        #side and the top of your arm and looking at the angle this makes with your lower arm
+        # Front and Back movement (flexion / extension)
+        leftArmVectorProjectedToNormalPlane = projectToPlane(
+            noramlToBodyNormal, topLeftArmVector)
+        angleLeftArmFrontBackPlane = calc_angle(
+            leftArmVectorProjectedToNormalPlane, -leftBodySideVector)
+
+        rightArmVectorProjectedToNormalPlane = projectToPlane(
+            noramlToBodyNormal, topRightArmVector)
+        angleRightArmFrontBackPlane = calc_angle(
+            rightArmVectorProjectedToNormalPlane, -rightBodySideVector)
+
+        # This attempts to calculate how rotated your arm is by taking a plane between your body
+        # side and the top of your arm and looking at the angle this makes with your lower arm
         topLeftArmAndBodyNormal = np.cross(
             topLeftArmVector, leftBodySideVector)
         leftArmRotationAngle = calc_angle(
-            normalise(topLeftArmAndBodyNormal), lowLeftArmVector)
+            topLeftArmAndBodyNormal, lowLeftArmVector)
 
         topRightArmAndBodyNormal = np.cross(
             topRightArmVector, rightBodySideVector)
         rightArmRotationAngle = calc_angle(
-            normalise(topRightArmAndBodyNormal), lowRightArmVector)
-        # It will be left, before right.  Then and it is elbow, shoulder, omo, rotation
-        outputArray = np.array(list(map(math.trunc, map(math.degrees, [leftElbowAngle, leftArmRotationAngle, angleAtLeftArm, angleLeftArmOmoPlate,
-                                                                       rightElbowAngle, rightArmRotationAngle, angleAtRightArm, angleRightArmOmoPlate]))))
-        #Logs the info to the terminal and publishes it to the topics so that other nodes can receive it
+            topRightArmAndBodyNormal, lowRightArmVector)
+        # It will be left, before right.  Then and it is elbow, rotation, shoulder (sagittal), omo (coronal)
+        outputArray = np.array(list(map(math.trunc, map(math.degrees, [leftElbowAngle, leftArmRotationAngle, angleLeftArmFrontBackPlane, angleLeftArmOmoPlate,
+                                                                       rightElbowAngle, rightArmRotationAngle, angleRightArmFrontBackPlane, angleRightArmOmoPlate]))))
+        # Logs the info to the terminal and publishes it to the topics so that other nodes can receive it
         rospy.loginfo(outputArray)
         left_arm_publisher.publish(outputArray[0:4])
         right_arm_publisher.publish(outputArray[4:])
@@ -165,7 +177,9 @@ def frameCallback(data):
         )
         cv2.imshow("MediaPipe Pose", image)
 
-#Standard setup for ROS so that we can listen for an incoming message on a topic, and call our function to deal with the input
+# Standard setup for ROS so that we can listen for an incoming message on a topic, and call our function to deal with the input
+
+
 def listener():
     rospy.init_node('/shadow_arm_controller', anonymous=True)
     image_sub = rospy.Subscriber('/camera/image_raw', Image, frameCallback)
