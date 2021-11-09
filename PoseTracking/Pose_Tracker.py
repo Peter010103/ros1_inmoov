@@ -144,13 +144,23 @@ def frameCallback(data):
         # Default 30, forward 180, backward 0
         leftArmVectorProjectedToLongitudinalPlane = projectToPlane(
             longitudinalPlaneNormal, topLeftArmVector)
-        angleLeftArmShoulderPlane = np.pi/6 + calc_angle(
-            leftArmVectorProjectedToLongitudinalPlane, leftBodySideVector)
+        if np.dot(leftArmVectorProjectedToLongitudinalPlane, frontalPlaneNormal) < 0:
+            # if the arm points backwards, dot product with vector pointing forward will be -ve
+            angleLeftArmShoulderPlane = np.pi/6 - calc_angle(
+                leftArmVectorProjectedToLongitudinalPlane, leftBodySideVector)
+        else:
+            angleLeftArmShoulderPlane = np.pi/6 + calc_angle(
+                leftArmVectorProjectedToLongitudinalPlane, leftBodySideVector)
 
         rightArmVectorProjectedToLongitudinalPlane = projectToPlane(
             longitudinalPlaneNormal, topRightArmVector)
-        angleRightArmShoulderPlane = np.pi/6 + calc_angle(
-            rightArmVectorProjectedToLongitudinalPlane, rightBodySideVector)
+        if np.dot(rightArmVectorProjectedToLongitudinalPlane, frontalPlaneNormal) < 0:
+            # same as above
+            angleRightArmShoulderPlane = np.pi/6 - calc_angle(
+                rightArmVectorProjectedToLongitudinalPlane, rightBodySideVector)
+        else:
+            angleRightArmShoulderPlane = np.pi/6 + calc_angle(
+                rightArmVectorProjectedToLongitudinalPlane, rightBodySideVector)
 
         # Rotation of shoulder joint
         # Default 90, inward 40, outward 180
