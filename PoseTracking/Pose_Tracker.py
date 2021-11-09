@@ -111,24 +111,25 @@ def frameCallback(data):
         lowRightArmVector = rightWristPosition - rightElbowPosition
 
         # Calculates the angle at your elbow
+        # Default 0 (full extension), extended 0, flexed 90
         leftElbowAngle = calc_angle(topLeftArmVector, lowLeftArmVector)
         rightElbowAngle = calc_angle(topRightArmVector, lowRightArmVector)
 
         # Calculate the vectors which are going down your body
-        leftBodySideVector = leftShoulder - leftHip
-        rightBodySideVector = rightShoulder - rightHip
+        leftBodySideVector = leftHip - leftShoulder
+        rightBodySideVector = rightHip - rightShoulder
 
         # Calculate the plane of the body, because we know it has the following normal vector
-        # Plane created points forward
+        # Normal vector points forward
         frontalPlaneNormal = np.cross(
             (rightShoulder - leftShoulder), - leftBodySideVector)
 
-        # Plane created points left
+        # Normal vector points left
         longitudinalPlaneNormal = np.cross(
             frontalPlaneNormal, - leftBodySideVector)
 
-        # This puts your arms into the same plane as the body so that it can work out how out to the side your arms are
-        # Omo plate (Coronal / frontal plane) (abduction / adduction)
+        # Omoplate movement (Coronal / frontal plane) (abduction / adduction)
+        # Default 10, low 10, high 80
         leftArmVectorProjectedToFrontalPlane = projectToPlane(
             frontalPlaneNormal, topLeftArmVector)
         angleLeftArmOmoPlate = calc_angle(
@@ -140,27 +141,38 @@ def frameCallback(data):
             rightArmVectorProjectedToFrontalPlane, rightBodySideVector)
 
         # Front and Back movement (Sagittal / longitudinal plane) (flexion / extension)
+        # Default 30, forward 180, backward 0
         leftArmVectorProjectedToLongitudinalPlane = projectToPlane(
             longitudinalPlaneNormal, topLeftArmVector)
-        angleLeftArmShoulderPlane = calc_angle(
-            leftArmVectorProjectedToLongitudinalPlane, -leftBodySideVector)
+        angleLeftArmShoulderPlane = np.pi/6 + calc_angle(
+            leftArmVectorProjectedToLongitudinalPlane, leftBodySideVector)
 
         rightArmVectorProjectedToLongitudinalPlane = projectToPlane(
             longitudinalPlaneNormal, topRightArmVector)
-        angleRightArmShoulderPlane = calc_angle(
-            rightArmVectorProjectedToLongitudinalPlane, -rightBodySideVector)
+        angleRightArmShoulderPlane = np.pi/6 + calc_angle(
+            rightArmVectorProjectedToLongitudinalPlane, rightBodySideVector)
+
+        # Rotation of shoulder joint
+        # Default 90, inward 40, outward 180
+        planeOfLeftElbowJoint = np.cross(lowLeftArmVector, topLeftArmVector) # points to left
+        leftArmRotationAngle = calc_angle(planeOfLeftElbowJoint, frontalPlaneNormal)
+
+        planeOfRightElbowJoint = np.cross(topRightArmVector, lowRightArmVector) # points to right
+        rightArmRotationAngle = calc_angle(planeOfRightElbowJoint, frontalPlaneNormal)
+
 
         # This attempts to calculate how rotated your arm is by taking a plane between your body
         # side and the top of your arm and looking at the angle this makes with your lower arm
-        topLeftArmAndBodyNormal = np.cross(
-            topLeftArmVector, leftBodySideVector)
-        leftArmRotationAngle = calc_angle(
-            topLeftArmAndBodyNormal, lowLeftArmVector)
+        # topLeftArmAndBodyNormal = np.cross(
+        #     topLeftArmVector, leftBodySideVector)
+        # leftArmRotationAngle = calc_angle(
+        #     topLeftArmAndBodyNormal, lowLeftArmVector)
 
-        topRightArmAndBodyNormal = np.cross(
-            topRightArmVector, rightBodySideVector)
-        rightArmRotationAngle = calc_angle(
-            topRightArmAndBodyNormal, lowRightArmVector)
+        # topRightArmAndBodyNormal = np.cross(
+        #     topRightArmVector, rightBodySideVector)
+        # rightArmRotationAngle = calc_angle(
+        #     topRightArmAndBodyNormal, lowRightArmVector)
+            
         # It will be left, before right.  Then and it is elbow, rotation, shoulder (sagittal/longitudinal), omo (coronal/frontal)
         outputArray = np.array(list(map(math.trunc, map(math.degrees, [leftElbowAngle, leftArmRotationAngle, angleLeftArmShoulderPlane, angleLeftArmOmoPlate,
                                                                        rightElbowAngle, rightArmRotationAngle, angleRightArmShoulderPlane, angleRightArmOmoPlate]))))
