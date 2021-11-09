@@ -122,11 +122,11 @@ def frameCallback(data):
         # Calculate the plane of the body, because we know it has the following normal vector
         # Normal vector points forward
         frontalPlaneNormal = np.cross(
-            (rightShoulder - leftShoulder), - leftBodySideVector)
+            (rightShoulder - leftShoulder), leftBodySideVector)
 
         # Normal vector points left
         longitudinalPlaneNormal = np.cross(
-            frontalPlaneNormal, - leftBodySideVector)
+            frontalPlaneNormal, leftBodySideVector)
 
         # Omoplate movement (Coronal / frontal plane) (abduction / adduction)
         # Default 10, low 10, high 80
