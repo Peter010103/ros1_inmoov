@@ -1,17 +1,18 @@
 #!/usr/bin/env python
+from re import T
+import matplotlib.pyplot as plt
+import math
+import cv2 as cv2
+from enum import Enum
+import numpy as np
+import mediapipe as mp
+from mpl_toolkits import mplot3d
 inRos = False
 if inRos:
     import rospy
     from std_msgs.msg import Int16MultiArray
     from sensor_msgs.msg import Image
     from cv_bridge import CvBridge, CvBridgeError
-from mpl_toolkits import mplot3d
-import mediapipe as mp
-import numpy as np
-from enum import Enum
-import cv2 as cv2
-import math
-import matplotlib.pyplot as plt
 π = np.pi
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -32,11 +33,10 @@ if not inRos:
     )  # Press 't' to toggle which angle values to draw on camera image
 else:
     bridge = CvBridge()
-    left_arm_publisher = rospy.Publisher(
-        '/joints/arm/left', Int16MultiArray, queue_size=10)
-    right_arm_publisher = rospy.Publisher(
-        '/joints/arm/right', Int16MultiArray, queue_size=10)
+    spinal_column_publisher = rospy.Publisher(
+        '/joints/spinal_column', Int16MultiArray, queue_size=10)
     rate = rospy.Rate(10)
+
 
 def calc_angle(u, v):
     """Function that calculates the angle between two vectors"""
@@ -54,10 +54,12 @@ def projectToPlane(normal, vector):
     # I think I can do the vector minus the bit of the vector in the direction of the normal
     return vector - (normalise(normal) * np.dot(normalise(normal), vector))
 
+
 def frameCallback(data):
 
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
-        # Flip (do we really want to be doing this because I think it leads to the confusion with left and right arms) the image horizontally for a later selfie-view display, and convert
+        # Flip (do we really want to be doing this because I think it leads to the confusion with left and right arms)
+        # the image horizontally for a later selfie-view display, and convert
         # the BGR image to RGB.
         # Converts the image from a ROS image to one suitable for processing
         if inRos:
@@ -96,20 +98,22 @@ def frameCallback(data):
 
         # Extracts all of the positions we are interested in from the landmarks array for further calculation
         leftEye = np.array([landmarks[mp_pose.PoseLandmark.LEFT_EYE].x,
-                                        landmarks[mp_pose.PoseLandmark.LEFT_EYE].y, landmarks[mp_pose.PoseLandmark.LEFT_EYE].z])
+                            landmarks[mp_pose.PoseLandmark.LEFT_EYE].y, landmarks[mp_pose.PoseLandmark.LEFT_EYE].z])
         rightEye = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_EYE].x,
-                                        landmarks[mp_pose.PoseLandmark.RIGHT_EYE].y, landmarks[mp_pose.PoseLandmark.RIGHT_EYE].z])
+                             landmarks[mp_pose.PoseLandmark.RIGHT_EYE].y, landmarks[mp_pose.PoseLandmark.RIGHT_EYE].z])
+        mouthLeft = np.array([landmarks[mp_pose.PoseLandmark.MOUTH_LEFT].x,
+                             landmarks[mp_pose.PoseLandmark.MOUTH_LEFT].y, landmarks[mp_pose.PoseLandmark.MOUTH_LEFT].z])
         leftShoulder = np.array([landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].x,
-                                    landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].z])
+                                 landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].z])
         rightShoulder = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x,
-                                    landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].z])
-        leftHip = np.array([landmarks[mp_pose.PoseLandmark.LEFT_HIP].x, 
-                                    landmarks[mp_pose.PoseLandmark.LEFT_HIP].y, landmarks[mp_pose.PoseLandmark.LEFT_HIP].z])
+                                  landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].z])
+        leftHip = np.array([landmarks[mp_pose.PoseLandmark.LEFT_HIP].x,
+                            landmarks[mp_pose.PoseLandmark.LEFT_HIP].y, landmarks[mp_pose.PoseLandmark.LEFT_HIP].z])
 
         if showGraph:
             # This is where we want to display the points that we have picked out in colour
-            X = np.column_stack((leftElbowPosition, rightElbowPosition, leftWristPosition,
-                                rightWristPosition, leftShoulder, rightShoulder, leftHip, rightHip))
+            X = np.column_stack(
+                (leftEye, rightEye, leftShoulder, rightShoulder, leftHip))
             # This is an array 3 long which has x,y,z data in that order
             ax.scatter3D(
                 X[0],
@@ -124,121 +128,78 @@ def frameCallback(data):
         leftBodySideVector = leftHip - leftShoulder
         if showGraph:
             ax.quiver(rightEye[0], rightEye[2], rightEye[1],
-                    eyeVector[0], eyeVector[2], eyeVector[1], color='green')
-            ax.quiver(rightShoulder[0], rightShoulder[2], rightShoulder[1],
-                    topRightArmVector[0], topRightArmVector[2], topRightArmVector[1], color='red')
-            ax.quiver(leftElbowPosition[0], leftElbowPosition[2], leftElbowPosition[1],
-                    lowLeftArmVector[0], lowLeftArmVector[2], lowLeftArmVector[1], color='green')
-            ax.quiver(rightElbowPosition[0], rightElbowPosition[2], rightElbowPosition[1],
-                    lowRightArmVector[0], lowRightArmVector[2], lowRightArmVector[1], color='red')
+                      eyeVector[0], eyeVector[2], eyeVector[1], color='green')
 
         # Calculate the plane of the body, because we know it has the following normal vector
         # Normal vector points forward
         frontalPlaneNormal = normalise(np.cross(
-            leftBodySideVector, (rightShoulder - leftShoulder)))
+            leftBodySideVector, shoulderVector))
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], frontalPlaneNormal[0],
-                    frontalPlaneNormal[2], frontalPlaneNormal[1], color='black')
+                      frontalPlaneNormal[2], frontalPlaneNormal[1], color='black')
 
         # Normal vector points left
         longitudinalPlaneNormal = normalise(np.cross(
-            leftBodySideVector, frontalPlaneNormal)) # Wonder if we would be better using vector between the two shoulders
+            leftBodySideVector, frontalPlaneNormal))  # Wonder if we would be better using vector between the two shoulders
 
         # Normal vector points up
-        transversePlaneNormal = np.cross(longitudinalPlaneNormal, frontalPlaneNormal)
+        transversePlaneNormal = np.cross(
+            longitudinalPlaneNormal, frontalPlaneNormal)
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], longitudinalPlaneNormal[0],
-                    longitudinalPlaneNormal[2], longitudinalPlaneNormal[1], color='orange')
+                      longitudinalPlaneNormal[2], longitudinalPlaneNormal[1], color='orange')
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], transversePlaneNormal[0],
-                    transversePlaneNormal[2], transversePlaneNormal[1], color='blue')
-        
+                      transversePlaneNormal[2], transversePlaneNormal[1], color='blue')
+
         # LR rotation of head, movement by STERNOCLEIDOMASTOID (SCM)
         # Guess is rothead?
         # Default 90, low 30, high 150
         eyeVectorProjectedToTransversePlane = projectToPlane(
             transversePlaneNormal, eyeVector)
-        sternocleidomastoid = π - calc_angle(eyeVectorProjectedToTransversePlane, frontalPlaneNormal)
+        sternocleidomastoid = π - \
+            calc_angle(eyeVectorProjectedToTransversePlane, frontalPlaneNormal)
 
         if showGraph:
-            ax.text(sternocleidomastoid[0],sternocleidomastoid[2],sternocleidomastoid[1], str(math.degrees(sternocleidomastoid))[:4], color = 'green')
+            ax.text(sternocleidomastoid[0], sternocleidomastoid[2], sternocleidomastoid[1], str(
+                math.degrees(sternocleidomastoid))[:4], color='green')
 
         # LR slanting of head movement, movement by SCALENE
         # Rollneck movement?
         # Default 90, low 60, high 130
-        leftArmVectorProjectedToFrontalPlane = projectToPlane(
-            frontalPlaneNormal, topLeftArmVector)
-        angleLeftArmOmoPlate = calc_angle(
-            leftArmVectorProjectedToFrontalPlane, leftBodySideVector)
+        eyeVectorProjectedToFrontalPlane = projectToPlane(
+            frontalPlaneNormal, eyeVector)
+        rollneckAngle = calc_angle(
+            eyeVectorProjectedToFrontalPlane, longitudinalPlaneNormal)
 
-        rightArmVectorProjectedToFrontalPlane = projectToPlane(
-            frontalPlaneNormal, topRightArmVector)
-        angleRightArmOmoPlate = calc_angle(
-            rightArmVectorProjectedToFrontalPlane, rightBodySideVector)
+        # FB nodding of head, movement by Splenius Capitis
+        # Could be neck?
+        # Default 90, low 20, high 160
 
-        if showGraph:
-            ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], leftArmVectorProjectedToFrontalPlane[0],
-                    leftArmVectorProjectedToFrontalPlane[2], leftArmVectorProjectedToFrontalPlane[1], color='green', alpha=0.4)
-            ax.quiver(rightShoulder[0], rightShoulder[2], rightShoulder[1], rightArmVectorProjectedToFrontalPlane[0],
-                    rightArmVectorProjectedToFrontalPlane[2], rightArmVectorProjectedToFrontalPlane[1], color='red', alpha=0.4)
+        leftEyeMouthVector = mouthLeft - leftEye
+        facePlaneNormalVector = normalise(
+            np.cross(leftEyeMouthVector, eyeVector))
+        facePlaneNormalProjectedToLongitudinal = projectToPlane(
+            longitudinalPlaneNormal, facePlaneNormalVector)
+        neckAngle = π - \
+            calc_angle(facePlaneNormalProjectedToLongitudinal,
+                       transversePlaneNormal)
 
-        # Front and Back movement (Sagittal / longitudinal plane) (flexion / extension)
-        # Default 30, forward 180, backward 0
-        leftArmVectorProjectedToLongitudinalPlane = projectToPlane(
-            longitudinalPlaneNormal, topLeftArmVector)
-        # if np.dot(leftArmVectorProjectedToLongitudinalPlane, frontalPlaneNormal) < 0:
-        #     # if the arm points backwards, dot product with vector pointing forward will be -ve
-        #     angleLeftArmShoulderPlane = π/6 - calc_angle(
-        #         leftArmVectorProjectedToLongitudinalPlane, -transversePlaneNormal)
-        # else:
-        #     angleLeftArmShoulderPlane = π/6 + calc_angle(
-        #         leftArmVectorProjectedToLongitudinalPlane, -transversePlaneNormal)
-        angleLeftArmShoulderPlane = π/6 + calc_angle(leftArmVectorProjectedToLongitudinalPlane, -transversePlaneNormal)
-
-        rightArmVectorProjectedToLongitudinalPlane = projectToPlane(
-            longitudinalPlaneNormal, topRightArmVector)
-        if np.dot(rightArmVectorProjectedToLongitudinalPlane, frontalPlaneNormal) < 0:
-            # same as above
-            angleRightArmShoulderPlane = π/6 - calc_angle(
-                rightArmVectorProjectedToLongitudinalPlane, -transversePlaneNormal)
-        else:
-            angleRightArmShoulderPlane = π/6 + calc_angle(
-                rightArmVectorProjectedToLongitudinalPlane, -transversePlaneNormal)
-
-        if showGraph:
-            ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], leftArmVectorProjectedToLongitudinalPlane[0],
-                    leftArmVectorProjectedToLongitudinalPlane[2], leftArmVectorProjectedToLongitudinalPlane[1], color='green', alpha=0.4)
-            ax.quiver(rightShoulder[0], rightShoulder[2], rightShoulder[1], rightArmVectorProjectedToLongitudinalPlane[0],
-                    rightArmVectorProjectedToLongitudinalPlane[2], rightArmVectorProjectedToLongitudinalPlane[1], color='green', alpha=0.4)
-
-        # Rotation of shoulder joint
-        # Default 90, inward 40, outward 180
-        planeOfLeftElbowJoint = np.cross(
-            lowLeftArmVector, topLeftArmVector)  # points to left (could well be wrong we need to check, because some of the others have been the wrong way round)
-        leftArmRotationAngle = calc_angle(
-            planeOfLeftElbowJoint, frontalPlaneNormal)
-
-        planeOfRightElbowJoint = np.cross(
-            topRightArmVector, lowRightArmVector)  # points to right, same as above
-        rightArmRotationAngle = calc_angle(
-            planeOfRightElbowJoint, frontalPlaneNormal)
-
-        # It will be left, before right.  Then and it is elbow, rotation, shoulder (sagittal/longitudinal), omo (coronal/frontal)
-        outputArray = np.array(list(map(math.trunc, map(math.degrees, [leftElbowAngle, leftArmRotationAngle, angleLeftArmShoulderPlane, angleLeftArmOmoPlate,
-                                                                    rightElbowAngle, rightArmRotationAngle, angleRightArmShoulderPlane, angleRightArmOmoPlate]))))
+        # It will be left, before right.  Then and it is neck (nodding), rotation (neck shaking), roll neck (slanting)
+        outputArray = np.array(list(map(math.trunc, map(math.degrees, [neckAngle, sternocleidomastoid, rollneckAngle]))))
 
         # print(f"LElbow: {outputArray[0]:3} LRot: {outputArray[1]:3} LShoulder: {outputArray[2]:3} LOmo: {outputArray[3]:3} RElbow: {outputArray[4]:3} RRot: {outputArray[5]:3} RShoulder: {outputArray[6]:3} ROmo: {outputArray[7]:3}")
         # Logs the info to the terminal and publishes it to the topics so that other nodes can receive it
         if inRos:
             rospy.loginfo(outputArray)
-            left_arm_publisher.publish(outputArray[0:4])
-            right_arm_publisher.publish(outputArray[4:])
+            spinal_column_publisher.publish(outputArray[0:4])
         else:
-            print(f"LElbow: {outputArray[0]:3} LRot: {outputArray[1]:3} LShoulder: {outputArray[2]:3} LOmo: {outputArray[3]:3} RElbow: {outputArray[4]:3} RRot: {outputArray[5]:3} RShoulder: {outputArray[6]:3} ROmo: {outputArray[7]:3}")
+            print(
+                f"Neck: {outputArray[0]:3} Neck Rotation: {outputArray[1]:3} NeckRoll: {outputArray[2]:3}")
         # print(outputArray)
         # Draw the pose annotation on the image.
-        image.flags.writeable = True
+        image.flags.writeable=True
         if not inRos:
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            image=cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             mp_drawing.draw_landmarks(
                 image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
             )
@@ -251,7 +212,7 @@ def frameCallback(data):
 
 def listener():
     rospy.init_node('/shadow_arm_controller', anonymous=True)
-    image_sub = rospy.Subscriber('/camera/image_raw', Image, frameCallback)
+    image_sub=rospy.Subscriber('/camera/image_raw', Image, frameCallback)
     try:
         rospy.spin()
     except KeyboardInterrupt:
@@ -262,9 +223,9 @@ if __name__ == "__main__":
     if inRos:
         listener()
     else:
-        cap = cv2.VideoCapture(0)
+        cap=cv2.VideoCapture(0)
         while cap.isOpened():
-            success, image = cap.read()
+            success, image=cap.read()
             if not success:
                 print("Ignoring empty camera frame.")
                 # If loading a video, use 'break' instead of 'continue'.
