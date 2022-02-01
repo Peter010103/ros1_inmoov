@@ -195,7 +195,6 @@ def frameCallback(data):
         else:
             print(
                 f"Neck: {outputArray[0]:3} Neck Rotation: {outputArray[1]:3} NeckRoll: {outputArray[2]:3}")
-        print(outputArray)
         # Draw the pose annotation on the image.
         image.flags.writeable = True
         if not inRos:
