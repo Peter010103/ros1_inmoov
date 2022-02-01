@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from re import T
 import matplotlib.pyplot as plt
 import math
 import cv2 as cv2
@@ -34,7 +33,9 @@ if not inRos:
 else:
     bridge = CvBridge()
     spinal_column_publisher = rospy.Publisher(
-        '/joints/spinal_column', Int16MultiArray, queue_size=10)
+        '/joints/arm/left', Int16MultiArray, queue_size=10)
+    right_arm_publisher = rospy.Publisher(
+        '/joints/arm/right', Int16MultiArray, queue_size=10)
     rate = rospy.Rate(10)
 
 
@@ -58,8 +59,7 @@ def projectToPlane(normal, vector):
 def frameCallback(data):
 
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
-        # Flip (do we really want to be doing this because I think it leads to the confusion with left and right arms)
-        # the image horizontally for a later selfie-view display, and convert
+        # Flip (do we really want to be doing this because I think it leads to the confusion with left and right arms) the image horizontally for a later selfie-view display, and convert
         # the BGR image to RGB.
         # Converts the image from a ROS image to one suitable for processing
         if inRos:
@@ -160,7 +160,7 @@ def frameCallback(data):
             calc_angle(eyeVectorProjectedToTransversePlane, frontalPlaneNormal)
 
         if showGraph:
-            ax.text(sternocleidomastoid[0], sternocleidomastoid[2], sternocleidomastoid[1], str(
+            ax.text(mouthLeft[0], mouthLeft[2], mouthLeft[1], str(
                 math.degrees(sternocleidomastoid))[:4], color='green')
 
         # LR slanting of head movement, movement by SCALENE
@@ -195,11 +195,11 @@ def frameCallback(data):
         else:
             print(
                 f"Neck: {outputArray[0]:3} Neck Rotation: {outputArray[1]:3} NeckRoll: {outputArray[2]:3}")
-        # print(outputArray)
+        print(outputArray)
         # Draw the pose annotation on the image.
-        image.flags.writeable=True
+        image.flags.writeable = True
         if not inRos:
-            image=cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             mp_drawing.draw_landmarks(
                 image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS
             )
@@ -212,7 +212,7 @@ def frameCallback(data):
 
 def listener():
     rospy.init_node('/shadow_arm_controller', anonymous=True)
-    image_sub=rospy.Subscriber('/camera/image_raw', Image, frameCallback)
+    image_sub = rospy.Subscriber('/camera/image_raw', Image, frameCallback)
     try:
         rospy.spin()
     except KeyboardInterrupt:
@@ -223,9 +223,9 @@ if __name__ == "__main__":
     if inRos:
         listener()
     else:
-        cap=cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(0)
         while cap.isOpened():
-            success, image=cap.read()
+            success, image = cap.read()
             if not success:
                 print("Ignoring empty camera frame.")
                 # If loading a video, use 'break' instead of 'continue'.
