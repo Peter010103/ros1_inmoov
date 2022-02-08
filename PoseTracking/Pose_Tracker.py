@@ -1,17 +1,17 @@
 #!/usr/bin/env python
+import matplotlib.pyplot as plt
+import math
+import cv2 as cv2
+from enum import Enum
+import numpy as np
+import mediapipe as mp
+from mpl_toolkits import mplot3d
 inRos = False
 if inRos:
     import rospy
     from std_msgs.msg import Int16MultiArray
     from sensor_msgs.msg import Image
     from cv_bridge import CvBridge, CvBridgeError
-from mpl_toolkits import mplot3d
-import mediapipe as mp
-import numpy as np
-from enum import Enum
-import cv2 as cv2
-import math
-import matplotlib.pyplot as plt
 π = np.pi
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -38,6 +38,7 @@ else:
         '/joints/arm/right', Int16MultiArray, queue_size=10)
     rate = rospy.Rate(10)
 
+
 def calc_angle(u, v):
     """Function that calculates the angle between two vectors"""
     return round(np.arccos(u.dot(v) / (np.linalg.norm(u) * np.linalg.norm(v))), 2)
@@ -53,6 +54,7 @@ def normalise(vector):
 def projectToPlane(normal, vector):
     # I think I can do the vector minus the bit of the vector in the direction of the normal
     return vector - (normalise(normal) * np.dot(normalise(normal), vector))
+
 
 def frameCallback(data):
 
@@ -96,17 +98,17 @@ def frameCallback(data):
 
         # Extracts all of the positions we are interested in from the landmarks array for further calculation
         leftElbowPosition = np.array([landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].x,
-                                    -landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].y, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].z])
+                                      -landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].y, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].z])
         rightElbowPosition = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].x,
-                                    -landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].y, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].z])
+                                       -landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].y, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].z])
         leftWristPosition = np.array([landmarks[mp_pose.PoseLandmark.LEFT_WRIST].x,
-                                    -landmarks[mp_pose.PoseLandmark.LEFT_WRIST].y, landmarks[mp_pose.PoseLandmark.LEFT_WRIST].z])
+                                      -landmarks[mp_pose.PoseLandmark.LEFT_WRIST].y, landmarks[mp_pose.PoseLandmark.LEFT_WRIST].z])
         rightWristPosition = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].x,
-                                    -landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].y, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].z])
+                                       -landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].y, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].z])
         leftShoulder = np.array([landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].x,
                                 -landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].z])
         rightShoulder = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x,
-                                -landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].z])
+                                  -landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].z])
         leftHip = np.array([landmarks[mp_pose.PoseLandmark.LEFT_HIP].x,
                             -landmarks[mp_pose.PoseLandmark.LEFT_HIP].y, landmarks[mp_pose.PoseLandmark.LEFT_HIP].z])
         rightHip = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x,
@@ -131,13 +133,13 @@ def frameCallback(data):
         lowRightArmVector = rightWristPosition - rightElbowPosition
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1],
-                    topLeftArmVector[0], topLeftArmVector[2], topLeftArmVector[1], color='green')
+                      topLeftArmVector[0], topLeftArmVector[2], topLeftArmVector[1], color='green')
             ax.quiver(rightShoulder[0], rightShoulder[2], rightShoulder[1],
-                    topRightArmVector[0], topRightArmVector[2], topRightArmVector[1], color='red')
+                      topRightArmVector[0], topRightArmVector[2], topRightArmVector[1], color='red')
             ax.quiver(leftElbowPosition[0], leftElbowPosition[2], leftElbowPosition[1],
-                    lowLeftArmVector[0], lowLeftArmVector[2], lowLeftArmVector[1], color='green')
+                      lowLeftArmVector[0], lowLeftArmVector[2], lowLeftArmVector[1], color='green')
             ax.quiver(rightElbowPosition[0], rightElbowPosition[2], rightElbowPosition[1],
-                    lowRightArmVector[0], lowRightArmVector[2], lowRightArmVector[1], color='red')
+                      lowRightArmVector[0], lowRightArmVector[2], lowRightArmVector[1], color='red')
 
         # Calculates the angle at your elbow
         # Default 0 (full extension), extended 0, flexed 90
@@ -145,35 +147,38 @@ def frameCallback(data):
         rightElbowAngle = calc_angle(topRightArmVector, lowRightArmVector)
 
         if showGraph:
-            ax.text(leftElbowPosition[0],leftElbowPosition[2],leftElbowPosition[1], str(math.degrees(leftElbowAngle))[:4], color = 'green')
-            ax.text(rightElbowPosition[0],rightElbowPosition[2],rightElbowPosition[1], str(math.degrees(rightElbowAngle))[:4], color = 'red')
+            ax.text(leftElbowPosition[0], leftElbowPosition[2], leftElbowPosition[1], str(
+                math.degrees(leftElbowAngle))[:4], color='green')
+            ax.text(rightElbowPosition[0], rightElbowPosition[2], rightElbowPosition[1], str(
+                math.degrees(rightElbowAngle))[:4], color='red')
 
         # Calculate the vectors which are going down your body
         leftBodySideVector = leftHip - leftShoulder
         rightBodySideVector = rightHip - rightShoulder
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], leftBodySideVector[0],
-                    leftBodySideVector[2], leftBodySideVector[1], color='green')
+                      leftBodySideVector[2], leftBodySideVector[1], color='green')
             ax.quiver(rightShoulder[0], rightShoulder[2], rightShoulder[1], rightBodySideVector[0],
-                    rightBodySideVector[2], rightBodySideVector[1], color='red')
+                      rightBodySideVector[2], rightBodySideVector[1], color='red')
 
         # Calculate the plane of the body, because we know it has the following normal vector
         # Normal vector points forward
         frontalPlaneNormal = normalise(np.cross(
-            leftBodySideVector, (rightShoulder - leftShoulder)))
+            leftBodySideVector + rightBodySideVector, (rightShoulder - leftShoulder)))
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], frontalPlaneNormal[0],
-                    frontalPlaneNormal[2], frontalPlaneNormal[1], color='black')
+                      frontalPlaneNormal[2], frontalPlaneNormal[1], color='black')
 
         # Normal vector points left
         longitudinalPlaneNormal = normalise(np.cross(
-            leftBodySideVector, frontalPlaneNormal)) #Wonder if we would be better using vector between the two shoulders
-        transversePlaneNormal = np.cross(longitudinalPlaneNormal, frontalPlaneNormal) #Vector points up
+            leftBodySideVector + rightBodySideVector, frontalPlaneNormal))  # Wonder if we would be better using vector between the two shoulders
+        transversePlaneNormal = np.cross(
+            longitudinalPlaneNormal, frontalPlaneNormal)  # Vector points up
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], longitudinalPlaneNormal[0],
-                    longitudinalPlaneNormal[2], longitudinalPlaneNormal[1], color='orange')
+                      longitudinalPlaneNormal[2], longitudinalPlaneNormal[1], color='orange')
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], transversePlaneNormal[0],
-                    transversePlaneNormal[2], transversePlaneNormal[1], color='blue')
+                      transversePlaneNormal[2], transversePlaneNormal[1], color='blue')
 
         # Omoplate movement (Coronal / frontal plane) (abduction / adduction)
         # Default 10, low 10, high 80
@@ -189,9 +194,9 @@ def frameCallback(data):
 
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], leftArmVectorProjectedToFrontalPlane[0],
-                    leftArmVectorProjectedToFrontalPlane[2], leftArmVectorProjectedToFrontalPlane[1], color='green', alpha=0.4)
+                      leftArmVectorProjectedToFrontalPlane[2], leftArmVectorProjectedToFrontalPlane[1], color='green', alpha=0.4)
             ax.quiver(rightShoulder[0], rightShoulder[2], rightShoulder[1], rightArmVectorProjectedToFrontalPlane[0],
-                    rightArmVectorProjectedToFrontalPlane[2], rightArmVectorProjectedToFrontalPlane[1], color='red', alpha=0.4)
+                      rightArmVectorProjectedToFrontalPlane[2], rightArmVectorProjectedToFrontalPlane[1], color='red', alpha=0.4)
 
         # Front and Back movement (Sagittal / longitudinal plane) (flexion / extension)
         # Default 30, forward 180, backward 0
@@ -204,7 +209,9 @@ def frameCallback(data):
         # else:
         #     angleLeftArmShoulderPlane = π/6 + calc_angle(
         #         leftArmVectorProjectedToLongitudinalPlane, -transversePlaneNormal)
-        angleLeftArmShoulderPlane = π/6 + calc_angle(leftArmVectorProjectedToLongitudinalPlane, -transversePlaneNormal)
+        angleLeftArmShoulderPlane = π/6 + \
+            calc_angle(leftArmVectorProjectedToLongitudinalPlane, -
+                       transversePlaneNormal)
 
         rightArmVectorProjectedToLongitudinalPlane = projectToPlane(
             longitudinalPlaneNormal, topRightArmVector)
@@ -218,9 +225,9 @@ def frameCallback(data):
 
         if showGraph:
             ax.quiver(leftShoulder[0], leftShoulder[2], leftShoulder[1], leftArmVectorProjectedToLongitudinalPlane[0],
-                    leftArmVectorProjectedToLongitudinalPlane[2], leftArmVectorProjectedToLongitudinalPlane[1], color='green', alpha=0.4)
+                      leftArmVectorProjectedToLongitudinalPlane[2], leftArmVectorProjectedToLongitudinalPlane[1], color='green', alpha=0.4)
             ax.quiver(rightShoulder[0], rightShoulder[2], rightShoulder[1], rightArmVectorProjectedToLongitudinalPlane[0],
-                    rightArmVectorProjectedToLongitudinalPlane[2], rightArmVectorProjectedToLongitudinalPlane[1], color='green', alpha=0.4)
+                      rightArmVectorProjectedToLongitudinalPlane[2], rightArmVectorProjectedToLongitudinalPlane[1], color='green', alpha=0.4)
 
         # Rotation of shoulder joint
         # Default 90, inward 40, outward 180
@@ -248,7 +255,7 @@ def frameCallback(data):
 
         # It will be left, before right.  Then and it is elbow, rotation, shoulder (sagittal/longitudinal), omo (coronal/frontal)
         outputArray = np.array(list(map(math.trunc, map(math.degrees, [leftElbowAngle, leftArmRotationAngle, angleLeftArmShoulderPlane, angleLeftArmOmoPlate,
-                                                                    rightElbowAngle, rightArmRotationAngle, angleRightArmShoulderPlane, angleRightArmOmoPlate]))))
+                                                                       rightElbowAngle, rightArmRotationAngle, angleRightArmShoulderPlane, angleRightArmOmoPlate]))))
 
         # print(f"LElbow: {outputArray[0]:3} LRot: {outputArray[1]:3} LShoulder: {outputArray[2]:3} LOmo: {outputArray[3]:3} RElbow: {outputArray[4]:3} RRot: {outputArray[5]:3} RShoulder: {outputArray[6]:3} ROmo: {outputArray[7]:3}")
         # Logs the info to the terminal and publishes it to the topics so that other nodes can receive it
@@ -296,6 +303,7 @@ if __name__ == "__main__":
             try:
                 frameCallback(image)
             except:
+                print("Some part of the machine vision went wrong.")
                 continue
         cap.release()
     plt.show()
