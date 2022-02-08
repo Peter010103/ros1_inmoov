@@ -109,6 +109,8 @@ def frameCallback(data):
                                   landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].y, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].z])
         leftHip = np.array([landmarks[mp_pose.PoseLandmark.LEFT_HIP].x,
                             landmarks[mp_pose.PoseLandmark.LEFT_HIP].y, landmarks[mp_pose.PoseLandmark.LEFT_HIP].z])
+        rightHip = np.array([landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x,
+                            landmarks[mp_pose.PoseLandmark.RIGHT_HIP].y, landmarks[mp_pose.PoseLandmark.RIGHT_HIP].z])
 
         if showGraph:
             # This is where we want to display the points that we have picked out in colour
@@ -125,7 +127,7 @@ def frameCallback(data):
         # This calculates the vectors
         eyeVector = leftEye - rightEye
         shoulderVector = rightShoulder - leftShoulder
-        leftBodySideVector = leftHip - leftShoulder
+        leftBodySideVector = leftHip - leftShoulder + rightHip - rightShoulder
         if showGraph:
             ax.quiver(rightEye[0], rightEye[2], rightEye[1],
                       eyeVector[0], eyeVector[2], eyeVector[1], color='green')
@@ -168,7 +170,7 @@ def frameCallback(data):
         eyeVectorProjectedToFrontalPlane = projectToPlane(
             frontalPlaneNormal, eyeVector)
         rollneckAngle = calc_angle(
-            eyeVectorProjectedToFrontalPlane, longitudinalPlaneNormal)
+            eyeVectorProjectedToFrontalPlane, -transversePlaneNormal)
 
         # FB nodding of head, movement by Splenius Capitis
         # Could be neck?
