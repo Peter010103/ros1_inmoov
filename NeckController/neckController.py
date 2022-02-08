@@ -156,8 +156,7 @@ def frameCallback(data):
         # Default 90, low 30, high 150
         eyeVectorProjectedToTransversePlane = projectToPlane(
             transversePlaneNormal, eyeVector)
-        sternocleidomastoid = π - \
-            calc_angle(eyeVectorProjectedToTransversePlane, frontalPlaneNormal)
+        sternocleidomastoid = π - calc_angle(eyeVectorProjectedToTransversePlane, frontalPlaneNormal)
 
         if showGraph:
             ax.text(mouthLeft[0], mouthLeft[2], mouthLeft[1], str(
