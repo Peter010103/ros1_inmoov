@@ -68,6 +68,8 @@ def frameCallback(data):
             image = data
         # To improve performance, optionally mark the image as not writeable to
         # pass by reference.
+        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+
         image.flags.writeable = False
         results = pose.process(image)
         # This extracts the landmarks we are interested in
