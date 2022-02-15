@@ -77,9 +77,6 @@ def leftArmCallBack(data):
     iterator[JointTopic.L_ARM] = (iterator[JointTopic.L_ARM] + 1) % 8
     average([Joints.L_BICEP, Joints.L_ARM_ROTATE,
             Joints.L_SHOULDER, Joints.L_OMOPLATE])
-    clamp([Joints.L_BICEP, Joints.L_ARM_ROTATE,
-          Joints.L_SHOULDER, Joints.L_OMOPLATE])
-
 
 def rightArmCallBack(data):
     joints_list[Joints.R_BICEP, iterator[JointTopic.R_ARM]] = data.data[0]
@@ -89,8 +86,6 @@ def rightArmCallBack(data):
     iterator[JointTopic.R_ARM] = (iterator[JointTopic.R_ARM] + 1) % 8
     average([Joints.R_BICEP, Joints.R_ARM_ROTATE,
             Joints.R_SHOULDER, Joints.R_OMOPLATE])
-    clamp([Joints.R_BICEP, Joints.R_ARM_ROTATE,
-          Joints.R_SHOULDER, Joints.R_OMOPLATE])
 
 # to work on
 def clipOutputArray():
