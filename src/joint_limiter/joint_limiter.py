@@ -3,6 +3,7 @@ import rospy
 from std_msgs.msg import Int16MultiArray
 from enum import Enum
 import numpy as np
+import yaml
 
 
 class Joints(Enum):
@@ -48,6 +49,7 @@ class JointTopic(Enum):
 
 
 joints_list = np.zeros(shape=(30, 8))
+joints_values = np.zeros(shape=(30, 3))
 iterator = np.zeros(6)
 output_array = np.zeros(30)
 
@@ -60,6 +62,42 @@ def setupAngleArray():
     joints_list[Joints.R_SHOULDER, :] += 30
     for i in [Joints.R_OMOPLATE, Joints.L_OMOPLATE, Joints.JAW]:
         joints_list[i, :] += 10
+    joint_dict = {}
+    with open("data.yaml", 'r') as stream:
+        joint_dict = yaml.safe_load(stream)
+    for i, val in enumerate(['R_WRIST',
+              'R_THUMB',
+              'R_INDEX',
+              'R_MIDDLE',
+              'R_RINGFINGER',
+              'R_PINKY',
+              'R_BICEP',
+              'R_ARM_ROTATE',
+              'R_SHOULDER',
+              'R_OMOPLATE',
+              'L_THUMB',
+              'L_INDEX',
+              'L_MIDDLE',
+              'L_RINGFINGER',
+              'L_PINKY',
+              'L_WRIST',
+              'L_BICEP',
+              'L_ARM_ROTATE',
+              'L_SHOULDER',
+              'L_OMOPLATE',
+              'NECK',
+              'ROTHEAD',
+              'ROLLNECK',
+              'EYELID',
+              'JAW',
+              'EYEX',
+              'EYEY',
+              'TOPSTOM',
+              'MIDSTOM',
+              'LOWSTOM']):
+        joints_values[i, 0] = joint_dict[val]['closed']
+        joints_values[i, 1] = joint_dict[val]['rest']
+        joints_values[i, 2] = joint_dict[val]['open']
 
 
 def average(li):
@@ -78,6 +116,7 @@ def leftArmCallBack(data):
     average([Joints.L_BICEP, Joints.L_ARM_ROTATE,
             Joints.L_SHOULDER, Joints.L_OMOPLATE])
 
+
 def rightArmCallBack(data):
     joints_list[Joints.R_BICEP, iterator[JointTopic.R_ARM]] = data.data[0]
     joints_list[Joints.R_ARM_ROTATE, iterator[JointTopic.R_ARM]] = data.data[1]
@@ -88,8 +127,10 @@ def rightArmCallBack(data):
             Joints.R_SHOULDER, Joints.R_OMOPLATE])
 
 # to work on
+
+
 def clipOutputArray():
-    continue
+    output_array = np.clip(output_array, joints_values[:, 0], joints_values[:, 2])
 
 
 def listener():
@@ -112,6 +153,6 @@ def listener():
         print("shutting down")
 
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     setupAngleArray()
     listener()
