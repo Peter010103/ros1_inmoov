@@ -1,0 +1,7 @@
+<launch>
+  
+  <node name="shadow_arm_controller" pkg="inmoov_control" type="Pose_Tracker.py" output="screen"></node>
+  <node name="joint_limiter" pkg="inmoov_control" type="joint_limiter.py" output="screen"></node>
+  <!-- <node name="i2c_serial" pkg="inmoov_control" type="i2c_Serial.py" output="screen"></node> -->
+  
+</launch>

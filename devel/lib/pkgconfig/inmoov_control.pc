@@ -1,0 +1,8 @@
+prefix=/home/henry/Documents/RoboticsSociety/InMoov/ros1_inmoov/devel
+
+Name: inmoov_control
+Description: Description of inmoov_control
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

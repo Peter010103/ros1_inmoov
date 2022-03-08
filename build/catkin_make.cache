@@ -1,0 +1,2 @@
+inmoov_control
+-DCATKIN_DEVEL_PREFIX=/home/henry/Documents/RoboticsSociety/InMoov/ros1_inmoov/devel -DCMAKE_INSTALL_PREFIX=/home/henry/Documents/RoboticsSociety/InMoov/ros1_inmoov/install -G Unix Makefiles
