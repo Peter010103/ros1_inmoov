@@ -1,56 +1,120 @@
-l_index:
+EYELID:
   closed: 0
   open: 0
   rest: 0
-l_middle:
+EYEX:
   closed: 0
   open: 0
   rest: 0
-l_pinky:
+EYEY:
   closed: 0
   open: 0
   rest: 0
-l_ringFinger:
+JAW:
   closed: 0
   open: 0
   rest: 0
-l_wrist:
+LOWSTOM:
   closed: 0
   open: 0
   rest: 0
-r_arm_rotate:
+L_ARM_ROTATE:
   closed: 0
   open: 0
   rest: 0
-r_bicep:
+L_BICEP:
   closed: 0
   open: 0
   rest: 0
-r_index:
+L_INDEX:
   closed: 0
   open: 0
   rest: 0
-r_middle:
+L_MIDDLE:
   closed: 0
   open: 0
   rest: 0
-r_omoplate:
+L_OMOPLATE:
   closed: 0
   open: 0
   rest: 0
-r_pinky:
+L_PINKY:
   closed: 0
   open: 0
   rest: 0
-r_ringFinger:
+L_RINGFINGER:
   closed: 0
   open: 0
   rest: 0
-r_shoulder:
+L_SHOULDER:
   closed: 0
   open: 0
   rest: 0
-r_thumb:
+L_THUMB:
+  closed: 0
+  open: 0
+  rest: 0
+L_WRIST:
+  closed: 0
+  open: 0
+  rest: 0
+MIDSTOM:
+  closed: 0
+  open: 0
+  rest: 0
+NECK:
+  closed: 0
+  open: 0
+  rest: 0
+ROLLNECK:
+  closed: 0
+  open: 0
+  rest: 0
+ROTHEAD:
+  closed: 0
+  open: 0
+  rest: 0
+R_ARM_ROTATE:
+  closed: 0
+  open: 0
+  rest: 0
+R_BICEP:
+  closed: 0
+  open: 0
+  rest: 0
+R_INDEX:
+  closed: 0
+  open: 0
+  rest: 0
+R_MIDDLE:
+  closed: 0
+  open: 0
+  rest: 0
+R_OMOPLATE:
+  closed: 0
+  open: 0
+  rest: 0
+R_PINKY:
+  closed: 0
+  open: 0
+  rest: 0
+R_RINGFINGER:
+  closed: 0
+  open: 0
+  rest: 0
+R_SHOULDER:
+  closed: 0
+  open: 0
+  rest: 0
+R_THUMB:
+  closed: 0
+  open: 0
+  rest: 0
+R_WRIST:
+  closed: 0
+  open: 0
+  rest: 0
+TOPSTOM:
   closed: 0
   open: 0
   rest: 0

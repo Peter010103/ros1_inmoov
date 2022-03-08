@@ -1,7 +1,7 @@
 # A to accept the angle
 import yaml
 import os
-Debug = False
+Debug = True
 
 if not Debug:
     from adafruit_servokit import ServoKit
@@ -24,8 +24,8 @@ def moveToAngle(joint, angle):
 
 
 for joint in servoNamesToIndices:
-    if (servoNamesToIndices[joint] >= 16):
-        continue
+    # if (servoNamesToIndices[joint] >= 16):
+    #     continue
     currentAngle = 0
     skipJoint = False
     # First set the closed position of the joint
@@ -74,6 +74,8 @@ for joint in servoNamesToIndices:
         outputData[joint] = {'closed': closedAngle,
                              'rest': restAngle, 'open': openAngle}
         moveToAngle(joint, restAngle)
+    else:
+        outputData[joint] = {'closed': 0, 'rest': 0, 'open': 0}
 
 
 with open('calibrationPoints.yml', 'w') as outfile:
