@@ -1,0 +1,56 @@
+l_index:
+  closed: 0
+  open: 0
+  rest: 0
+l_middle:
+  closed: 0
+  open: 0
+  rest: 0
+l_pinky:
+  closed: 0
+  open: 0
+  rest: 0
+l_ringFinger:
+  closed: 0
+  open: 0
+  rest: 0
+l_wrist:
+  closed: 0
+  open: 0
+  rest: 0
+r_arm_rotate:
+  closed: 0
+  open: 0
+  rest: 0
+r_bicep:
+  closed: 0
+  open: 0
+  rest: 0
+r_index:
+  closed: 0
+  open: 0
+  rest: 0
+r_middle:
+  closed: 0
+  open: 0
+  rest: 0
+r_omoplate:
+  closed: 0
+  open: 0
+  rest: 0
+r_pinky:
+  closed: 0
+  open: 0
+  rest: 0
+r_ringFinger:
+  closed: 0
+  open: 0
+  rest: 0
+r_shoulder:
+  closed: 0
+  open: 0
+  rest: 0
+r_thumb:
+  closed: 0
+  open: 0
+  rest: 0
