@@ -36,7 +36,6 @@ else:
         '/joints/arm/left', Int16MultiArray, queue_size=10)
     right_arm_publisher = rospy.Publisher(
         '/joints/arm/right', Int16MultiArray, queue_size=10)
-    rate = rospy.Rate(10)
 
 
 def calc_angle(u, v):
@@ -284,9 +283,10 @@ def frameCallback(data):
 
 if __name__ == "__main__":
     if inRos:
-        rospy.init_node('/shadow_arm_controller')
+        rospy.init_node('shadow_arm_controller')
         image_sub = rospy.Subscriber('/camera/image_raw', Image, frameCallback)
         try:
+            rate = rospy.Rate(10)
             rospy.spin()
         except KeyboardInterrupt:
             print("shutting down")

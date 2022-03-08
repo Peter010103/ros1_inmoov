@@ -172,7 +172,7 @@ def clipOutputArray():
 
 
 def listener():
-    rospy.init_node('/joint_limiter', anonymous=True)
+    rospy.init_node('joint_limiter', anonymous=True)
     joint_pub = rospy.Publisher(
         '/servo_angles', Int16MultiArray, queue_size=10)
     rate = rospy.Rate(10)  # Run at 10Hz

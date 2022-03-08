@@ -65,7 +65,7 @@ def callbackData(data):
 
 
 if __name__ == "__main__":
-    rospy.init_node('/i2c_serial', anonymous=True)
+    rospy.init_node('i2c_serial', anonymous=True)
     image_sub = rospy.Subscriber(
         '/servo_angles', Int16MultiArray, callbackData)
     try:
